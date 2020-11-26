@@ -85,7 +85,7 @@ vec3 WorldTrace(Ray ray)
 		return vec3(1, 0, 0);
 
 	vec3 unit_direction = normalize(ray.direction);
-	float t = 0.5 * unit_direction.y + 1.0;
+	float t = 0.5 * (unit_direction.y + 1.0);
 	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
 }
 
