@@ -268,7 +268,7 @@ bool createScene()
 		return false;
 	}
 
-	if (!createShaderProgram("main.vs", "main.fs", shaderProgram))
+	if (!createShaderProgram("PathTraceVS.glsl", "PathTracePS.glsl", shaderProgram))
 	{
 		return false;
 	}
