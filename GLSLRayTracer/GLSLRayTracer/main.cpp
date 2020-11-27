@@ -273,12 +273,12 @@ bool createScene()
 		return false;
 	}
 
-	if (!createTexture("diffuse.png", diffuseMap))
+	if (!createTexture("assets/diffuse.png", diffuseMap))
 	{
 		return false;
 	}
 
-	if (!createTexture("specular.png", specularMap))
+	if (!createTexture("assets/specular.png", specularMap))
 	{
 		return false;
 	}
