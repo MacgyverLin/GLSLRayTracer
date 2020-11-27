@@ -3,10 +3,11 @@ in vec2 screenCoord;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D specularMap;
-uniform vec2 screenSize;
+uniform ivec2 screenSize;
 
 out vec4 FragColor;
 
+///////////////////////////////////////////////////////////////////////////////
 struct Ray {
     vec3 origin;
     vec3 direction;
@@ -31,7 +32,6 @@ struct HitRecord
 	float t;
 	vec3 position;
 	vec3 normal;
-	bool hit;
 };
 
 struct World
@@ -95,10 +95,8 @@ Sphere SphereConstructor(vec3 center, float radius)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-HitRecord SphereHit(Sphere sphere, Ray ray, float t_min, float t_max)
+bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord hitRecord)
 {
-	HitRecord hitRecord;
-
 	vec3 oc = ray.origin - sphere.center;
 	
 	float a = dot(ray.direction, ray.direction);
@@ -111,28 +109,25 @@ HitRecord SphereHit(Sphere sphere, Ray ray, float t_min, float t_max)
 		float temp = (-b - sqrt(discriminant)) / (a);
 		if(temp < t_max && temp> t_min)
 		{
-			hitRecord.hit = true;
-
 			hitRecord.t = temp;
 			hitRecord.position = RayGetPointAt(ray, hitRecord.t);
 			hitRecord.normal = (hitRecord.position - sphere.center) / sphere.radius;
-			return hitRecord;
+			
+			return true;
 		}
 
 		temp = (-b + sqrt(discriminant)) / (a);
 		if(temp < t_max && temp> t_min)
 		{
-			hitRecord.hit = true;
-
 			hitRecord.t = temp;
 			hitRecord.position = RayGetPointAt(ray, hitRecord.t);
 			hitRecord.normal = (hitRecord.position - sphere.center) / sphere.radius;
-			return hitRecord;
+			
+			return true;
 		}
 	}
 	
-	hitRecord.hit = false;
-	return hitRecord;
+	return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -147,30 +142,30 @@ World WorldConstructor()
 	return world;
 }
 
-HitRecord WorldHit(World world, Ray ray, float t_min, float t_max)
+bool WorldHit(World world, Ray ray, float t_min, float t_max, inout HitRecord rec)
 {
 	HitRecord tempRec;
-	HitRecord rec;
-	rec.hit = false;
 	float cloestSoFar = t_max;
+	bool hitSomething = false;
 
 	for(int i=0; i<world.objectCount; i++)
 	{
-		tempRec = SphereHit(world.objects[i], ray, t_min, cloestSoFar);
-		if(tempRec.hit)
+		if(SphereHit(world.objects[i], ray, t_min, cloestSoFar, tempRec))
 		{
 			rec = tempRec;
 			cloestSoFar = tempRec.t;
+
+			hitSomething = true;
 		}
 	}
 
-	return rec;
+	return hitSomething;
 }
 
 vec3 WorldTrace(World world, Ray ray)
 {
-	HitRecord hitRecord = WorldHit(world, ray, 0.0, 1000000.0);
-	if(hitRecord.hit)
+	HitRecord hitRecord;
+	if(WorldHit(world, ray, 0.0, 1000000.0, hitRecord))
 	{
 		return 0.5 * vec3(hitRecord.normal.x+1, hitRecord.normal.y+1, hitRecord.normal.z+1);
 	}
@@ -186,8 +181,17 @@ void main()
 {
 	World world = WorldConstructor();
 	Camera camera = CameraConstructor(vec3(-2.0, -1.0, -1.0), vec3(4.0, 0.0, 0.0), vec3(0.0, 2.0, 0.0), vec3(0.0, 0.0, 0.0));
-	Ray ray = RayConstructor(camera.origin, camera.lower_left_corner + screenCoord.x * camera.horizontal + screenCoord.y * camera.vertical);
+	
+	int sampleCount = 1000;
+	vec3 col = vec3(0.0, 0.0, 0.0);
+	for(int s=0; s<sampleCount; s++)
+	{
+		Ray ray = RayConstructor(camera.origin, camera.lower_left_corner + screenCoord.x * camera.horizontal + screenCoord.y * camera.vertical);
+		col += WorldTrace(world, ray);
+	}
 
-	FragColor.xyz = WorldTrace(world, ray);
+	col /=sampleCount;
+
+	FragColor.xyz = col;
 	FragColor.w = 1.0;
 }

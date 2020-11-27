@@ -28,225 +28,433 @@ void processInput(GLFWwindow* window)
 #include <fstream>
 #include <sstream>
 #include <iostream>
-
-void checkCompileErrors(GLuint shader, std::string type)
+class ShaderProgram
 {
-	GLint success;
-	GLchar infoLog[1024];
-	if (type != "PROGRAM")
+public:
+	ShaderProgram()
+		: handle(0)
 	{
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-		if (!success)
+	}
+
+	~ShaderProgram()
+	{
+	}
+
+	bool Create(const char* vertexPath, const char* fragmentPath)
+	{
+		// 1. retrieve the vertex/fragment source code from filePath
+		std::string vertexCode;
+		std::string fragmentCode;
+		std::string geometryCode;
+		std::ifstream vShaderFile;
+		std::ifstream fShaderFile;
+		std::ifstream gShaderFile;
+		// ensure ifstream objects can throw exceptions:
+		vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+		fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+		gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+		try
 		{
-			glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-			std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+			// open files
+			vShaderFile.open(vertexPath);
+			fShaderFile.open(fragmentPath);
+			std::stringstream vShaderStream, fShaderStream;
+
+			// read file's buffer contents into streams
+			vShaderStream << vShaderFile.rdbuf();
+			fShaderStream << fShaderFile.rdbuf();
+
+			// close file handlers
+			vShaderFile.close();
+			fShaderFile.close();
+
+			// convert stream into string
+			vertexCode = vShaderStream.str();
+			fragmentCode = fShaderStream.str();
 		}
-	}
-	else
-	{
-		glGetProgramiv(shader, GL_LINK_STATUS, &success);
-		if (!success)
+		catch (std::ifstream::failure&)
 		{
-			glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-			std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
-		}
-	}
-}
-
-bool createShaderProgram(const char* vertexPath, const char* fragmentPath, unsigned int& shaderProgram)
-{
-	// 1. retrieve the vertex/fragment source code from filePath
-	std::string vertexCode;
-	std::string fragmentCode;
-	std::string geometryCode;
-	std::ifstream vShaderFile;
-	std::ifstream fShaderFile;
-	std::ifstream gShaderFile;
-	// ensure ifstream objects can throw exceptions:
-	vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-	fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-	gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-	try
-	{
-		// open files
-		vShaderFile.open(vertexPath);
-		fShaderFile.open(fragmentPath);
-		std::stringstream vShaderStream, fShaderStream;
-		
-		// read file's buffer contents into streams
-		vShaderStream << vShaderFile.rdbuf();
-		fShaderStream << fShaderFile.rdbuf();
-		
-		// close file handlers
-		vShaderFile.close();
-		fShaderFile.close();
-		
-		// convert stream into string
-		vertexCode = vShaderStream.str();
-		fragmentCode = fShaderStream.str();
-	}
-	catch (std::ifstream::failure&)
-	{
-		return 0;
-	}
-	
-	const char* vShaderCode = vertexCode.c_str();
-	const char* fShaderCode = fragmentCode.c_str();
-	
-	// 2. compile shaders
-	unsigned int vertex, fragment;
-	// vertex shader
-	vertex = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex, 1, &vShaderCode, NULL);
-	glCompileShader(vertex);
-	checkCompileErrors(vertex, "VERTEX");
-
-	// fragment Shader
-	fragment = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment, 1, &fShaderCode, NULL);
-	glCompileShader(fragment);
-	checkCompileErrors(fragment, "FRAGMENT");
-
-	// shader Program
-	shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertex);
-	glAttachShader(shaderProgram, fragment);
-
-	glLinkProgram(shaderProgram);
-	checkCompileErrors(shaderProgram, "PROGRAM");
-	// delete the shaders as they're linked into our program now and no longer necessery
-	glDeleteShader(vertex);
-	glDeleteShader(fragment);
-
-	return shaderProgram;
-}
-
-void destroyShaderProgram(unsigned int& shaderProgram)
-{
-	if (shaderProgram)
-	{
-		glDeleteProgram(shaderProgram);
-
-		shaderProgram = 0;
-	}
-}
-
-bool createGeometry(float* vertices, int verticesCount, unsigned int* indices, int indicesCount, unsigned int& VAO, unsigned int& VBO, unsigned int& EBO)
-{
-	glGenVertexArrays(1, &VAO);
-	if (VAO == 0)
-	{
-		return false;
-	}
-
-	glGenBuffers(1, &VBO);
-	if (VBO == 0)
-	{
-		return false;
-	}
-
-	glGenBuffers(1, &EBO);
-	if (EBO == 0)
-	{
-		return false;
-	}
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, verticesCount * sizeof(float), vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount * sizeof(int), indices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	glBindVertexArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-	return true;
-}
-
-void destroyGeometry(unsigned int& VAO, unsigned int& VBO, unsigned int& EBO)
-{
-	if (VAO)
-	{
-		if (VBO)
-		{
-			glDeleteBuffers(1, &VBO);
-			VBO = 0;
+			return false;
 		}
 
-		if (EBO)
+		const char* vShaderCode = vertexCode.c_str();
+		const char* fShaderCode = fragmentCode.c_str();
+
+		// 2. compile shaders
+		unsigned int vertex, fragment;
+		// vertex shader
+		vertex = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(vertex, 1, &vShaderCode, NULL);
+		glCompileShader(vertex);
+		CheckCompileErrors(vertex, "VERTEX");
+
+		// fragment Shader
+		fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fragment, 1, &fShaderCode, NULL);
+		glCompileShader(fragment);
+		CheckCompileErrors(fragment, "FRAGMENT");
+
+		// shader Program
+		handle = glCreateProgram();
+		glAttachShader(handle, vertex);
+		glAttachShader(handle, fragment);
+
+		glLinkProgram(handle);
+		CheckCompileErrors(handle, "PROGRAM");
+		// delete the shaders as they're linked into our program now and no longer necessery
+		glDeleteShader(vertex);
+		glDeleteShader(fragment);
+
+		return true;
+	}
+
+	void Destroy()
+	{
+		if (handle)
 		{
-			glDeleteBuffers(1, &EBO);
-			EBO = 0;
+			glDeleteProgram(handle);
+
+			handle = 0;
+		}
+	}
+
+	void Bind()
+	{
+		if (handle)
+			glUseProgram(handle);
+		//glUniform1i(glGetUniformLocation(handle, "diffuseMap"), 0);
+		//glUniform1i(glGetUniformLocation(handle, "specularMap"), 1);
+		//glUniform2i(glGetUniformLocation(handle, "screenSize"), SCR_WIDTH, SCR_HEIGHT);
+	}
+
+	void Unbind()
+	{
+		glUseProgram(0);
+	}
+
+	void SetUniform1i(const char* name_, int v0_)
+	{
+		glUniform1i(glGetUniformLocation(handle, name_), v0_);
+	}
+
+	void SetUniform2i(const char* name_, int v0_, int v1_)
+	{
+		glUniform2i(glGetUniformLocation(handle, name_), v0_, v1_);
+	}
+
+	void SetUniform3i(const char* name_, int v0_, int v1_, int v2_)
+	{
+		glUniform3i(glGetUniformLocation(handle, name_), v0_, v1_, v2_);
+	}
+
+	void SetUniform4i(const char* name_, int v0_, int v1_, int v2_, int v3_)
+	{
+		glUniform4i(glGetUniformLocation(handle, name_), v0_, v1_, v2_, v3_);
+	}
+
+	void SetUniform1f(const char* name_, float v0_)
+	{
+		glUniform1f(glGetUniformLocation(handle, name_), v0_);
+	}
+
+	void SetUniform2f(const char* name_, float v0_, float v1_)
+	{
+		glUniform2f(glGetUniformLocation(handle, name_), v0_, v1_);
+	}
+
+	void SetUniform3f(const char* name_, float v0_, float v1_, float v2_)
+	{
+		glUniform3f(glGetUniformLocation(handle, name_), v0_, v1_, v2_);
+	}
+
+	void SetUniform4f(const char* name_, float v0_, float v1_, float v2_, float v3_)
+	{
+		glUniform4f(glGetUniformLocation(handle, name_), v0_, v1_, v2_, v3_);
+	}
+
+	void SetUniform1iv(const char* name_, int count_, const int* v_)
+	{
+		glUniform1iv(glGetUniformLocation(handle, name_), count_, v_);
+	}
+
+	void SetUniform2iv(const char* name_, int count_, const int* v_)
+	{
+		glUniform2iv(glGetUniformLocation(handle, name_), count_, v_);
+	}
+
+	void SetUniform3iv(const char* name_, int count_, const int* v_)
+	{
+		glUniform3iv(glGetUniformLocation(handle, name_), count_, v_);
+	}
+
+	void SetUniform4iv(const char* name_, int count_, const int* v_)
+	{
+		glUniform4iv(glGetUniformLocation(handle, name_), count_, v_);
+	}
+
+	void SetUniform1fv(const char* name_, int count_, const float* v_)
+	{
+		glUniform1fv(glGetUniformLocation(handle, name_), count_, v_);
+	}
+
+	void SetUniform2fv(const char* name_, int count_, const float* v_)
+	{
+		glUniform2fv(glGetUniformLocation(handle, name_), count_, v_);
+	}
+
+	void SetUniform3fv(const char* name_, int count_, const float* v_)
+	{
+		glUniform3fv(glGetUniformLocation(handle, name_), count_, v_);
+	}
+
+	void SetUniform4fv(const char* name_, int count_, const float* v_)
+	{
+		glUniform4fv(glGetUniformLocation(handle, name_), count_, v_);
+	}
+
+	void SetUniformMatrix2fv(const char* name_, int count_, const float* v_)
+	{
+		glUniformMatrix2fv(glGetUniformLocation(handle, name_), count_, true, v_);
+	}
+
+	void SetUniformMatrix3fv(const char* name_, int count_, const float* v_)
+	{
+		glUniformMatrix3fv(glGetUniformLocation(handle, name_), count_, true, v_);
+	}
+
+	void SetUniformMatrix4fv(const char* name_, int count_, const float* v_)
+	{
+		glUniformMatrix4fv(glGetUniformLocation(handle, name_), count_, true, v_);
+	}
+private:
+	void CheckCompileErrors(GLuint shader, std::string type)
+	{
+		GLint success;
+		GLchar infoLog[1024];
+		if (type != "PROGRAM")
+		{
+			glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+			if (!success)
+			{
+				glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+				std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+			}
+		}
+		else
+		{
+			glGetProgramiv(shader, GL_LINK_STATUS, &success);
+			if (!success)
+			{
+				glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+				std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+			}
+		}
+	}
+private:
+	unsigned int handle;
+};
+
+class VertexArrayObject
+{
+public:
+	VertexArrayObject()
+		: VAO(0)
+		, VBO(0)
+		, EBO(0)
+	{
+	}
+
+	virtual ~VertexArrayObject()
+	{
+	}
+
+	bool Create(float* vertices, int verticesCount, unsigned int* indices, int indicesCount)
+	{
+		glGenVertexArrays(1, &VAO);
+		if (VAO == 0)
+		{
+			return false;
 		}
 
-		glDeleteVertexArrays(1, &VAO);
-		VAO = 0;
+		glGenBuffers(1, &VBO);
+		if (VBO == 0)
+		{
+			return false;
+		}
+
+		glGenBuffers(1, &EBO);
+		if (EBO == 0)
+		{
+			return false;
+		}
+
+		glBindVertexArray(VAO);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, verticesCount * sizeof(float), vertices, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount * sizeof(int), indices, GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindVertexArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+		return true;
 	}
-}
 
-bool createTexture(unsigned int width, unsigned int height, unsigned int nrComponents, void* data, unsigned int& texture)
-{
-	GLenum format;
-	if (nrComponents == 1)
-		format = GL_RED;
-	else if (nrComponents == 3)
-		format = GL_RGB;
-	else if (nrComponents == 4)
-		format = GL_RGBA;
-
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	return true;
-}
-
-bool createTexture(char const* path, unsigned int& texture)
-{
-	int width, height, nrComponents;
-	unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
-	if (data)
+	void Destroy()
 	{
-		bool result = createTexture(width, height, nrComponents, data, texture);
+		if (VAO)
+		{
+			if (VBO)
+			{
+				glDeleteBuffers(1, &VBO);
+				VBO = 0;
+			}
 
-		stbi_image_free(data);
+			if (EBO)
+			{
+				glDeleteBuffers(1, &EBO);
+				EBO = 0;
+			}
 
-		return result;
+			glDeleteVertexArrays(1, &VAO);
+			VAO = 0;
+		}
 	}
-	else
+
+	void Bind()
 	{
-		return false;
+		if (VAO)
+		{
+			glBindVertexArray(VAO);
+		}
 	}
-}
 
-void destroyTexture(unsigned int& texture)
+	void Unbind()
+	{
+		glBindVertexArray(0);
+	}
+
+	void Draw(unsigned int type_, unsigned int count_)
+	{
+		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawElements(type_, count_, GL_UNSIGNED_INT, 0);
+	}
+private:
+	unsigned int VAO;
+	unsigned int VBO;
+	unsigned int EBO;
+};
+
+class Texture
 {
-	if (texture)
+public:
+	Texture(unsigned int type_)
+		: type(type_)
+		, handle(0)
 	{
-		glDeleteTextures(1, &texture);
-		texture = 0;
 	}
-}
 
-unsigned int shaderProgram = 0;
-unsigned int VAO = 0;
-unsigned int VBO = 0;
-unsigned int EBO = 0;
-unsigned int diffuseMap = 0;
-unsigned int specularMap = 0;
+	virtual ~Texture()
+	{
+	}
+
+	void Bind(unsigned int texStage_)
+	{
+		if (handle)
+		{
+			glActiveTexture(GL_TEXTURE0 + texStage_);
+			glBindTexture(type, handle);
+		}
+	}
+
+	void Unbind()
+	{
+		glBindTexture(type, 0);
+	}
+protected:
+	unsigned int type;
+	unsigned int handle;
+};
+
+
+class Texture2D : public Texture
+{
+public:
+	Texture2D()
+	: Texture(GL_TEXTURE_2D)
+	{
+	}
+
+	~Texture2D()
+	{
+	}
+
+	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, void* data)
+	{
+		GLenum format;
+		if (nrComponents == 1)
+			format = GL_RED;
+		else if (nrComponents == 3)
+			format = GL_RGB;
+		else if (nrComponents == 4)
+			format = GL_RGBA;
+
+		glGenTextures(1, &handle);
+		glBindTexture(GL_TEXTURE_2D, handle);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		return true;
+	}
+
+	bool Create(char const* path)
+	{
+		int width, height, nrComponents;
+		unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+		if (data)
+		{
+			bool result = Create(width, height, nrComponents, data);
+
+			stbi_image_free(data);
+
+			return result;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	void Destroy()
+	{
+		if (handle)
+		{
+			glDeleteTextures(1, &handle);
+			handle = 0;
+		}
+	}
+private:
+private:
+	unsigned int handle;
+};
+
+ShaderProgram shaderProgram;
+Texture2D diffuseMap;
+Texture2D specularMap;
+VertexArrayObject vertexArrayObject;
 
 bool createScene()
 {
@@ -261,22 +469,22 @@ bool createScene()
 		1, 2, 3    // second triangle
 	};
 
-	if (!createGeometry(vertices, sizeof(vertices) / sizeof(vertices[0]), indices, sizeof(indices) / sizeof(indices[0]), VAO, VBO, EBO))
+	if (!vertexArrayObject.Create(vertices, sizeof(vertices) / sizeof(vertices[0]), indices, sizeof(indices) / sizeof(indices[0])))
+	{
+		return false;
+	}
+	
+	if (!shaderProgram.Create("PathTraceVS.glsl", "PathTracePS.glsl"))
 	{
 		return false;
 	}
 
-	if (!createShaderProgram("PathTraceVS.glsl", "PathTracePS.glsl", shaderProgram))
+	if (!diffuseMap.Create("diffuseMap.png"))
 	{
 		return false;
 	}
 
-	if (!createTexture("diffuseMap.png", diffuseMap))
-	{
-		return false;
-	}
-
-	if (!createTexture("specularMap.png", specularMap))
+	if (!specularMap.Create("specularMap.png"))
 	{
 		return false;
 	}
@@ -289,35 +497,28 @@ void renderScene()
 	glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glUseProgram(shaderProgram);
-	glUniform1i(glGetUniformLocation(shaderProgram, "diffuseMap"), 0);
-	glUniform1i(glGetUniformLocation(shaderProgram, "specularMap"), 1);
-	glUniform2i(glGetUniformLocation(shaderProgram, "screenSize"), SCR_WIDTH, SCR_HEIGHT);
+	shaderProgram.Bind();
+	shaderProgram.SetUniform1i("diffuseMap", 0);
+	shaderProgram.SetUniform1i("specularMap", 0);
+	shaderProgram.SetUniform2i("screenSize", SCR_WIDTH, SCR_HEIGHT);
 
-	glBindVertexArray(VAO);
+	vertexArrayObject.Bind();
 
-	// bind diffuse map
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, diffuseMap);
+	diffuseMap.Bind(0);
+	specularMap.Bind(1);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, specularMap);
-
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glDrawArrays(GL_TRIANGLES, 0, 3);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0); // no need to unbind it every time 
+	vertexArrayObject.Draw(GL_TRIANGLES, 6);
 }
 
 void destroyScene()
 {
-	destroyTexture(specularMap);
+	diffuseMap.Destroy();
 
-	destroyTexture(diffuseMap);
+	specularMap.Destroy();
 
-	destroyGeometry(VAO, VBO, EBO);
+	vertexArrayObject.Destroy();
 
-	destroyShaderProgram(shaderProgram);
+	shaderProgram.Destroy();
 }
 
 int main()
