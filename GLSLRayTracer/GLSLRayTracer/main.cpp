@@ -228,10 +228,8 @@ bool createTexture(char const* path, unsigned int& texture)
 	}
 	else
 	{
-		std::cout << "Texture failed to load at path: " << path << std::endl;
+		return false;
 	}
-
-	return true;
 }
 
 void destroyTexture(unsigned int& texture)
@@ -273,12 +271,12 @@ bool createScene()
 		return false;
 	}
 
-	if (!createTexture("assets/diffuse.png", diffuseMap))
+	if (!createTexture("assets/diffuseMap.png", diffuseMap))
 	{
 		return false;
 	}
 
-	if (!createTexture("assets/specular.png", specularMap))
+	if (!createTexture("assets/specularMap.png", specularMap))
 	{
 		return false;
 	}
