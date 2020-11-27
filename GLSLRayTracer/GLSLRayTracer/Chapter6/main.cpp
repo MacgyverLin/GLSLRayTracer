@@ -1,5 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <stb_image.h>
 #include <glad\glad.h>
 #include <GLFW\glfw3.h>
 
@@ -271,12 +271,12 @@ bool createScene()
 		return false;
 	}
 
-	if (!createTexture("assets/diffuseMap.png", diffuseMap))
+	if (!createTexture("diffuseMap.png", diffuseMap))
 	{
 		return false;
 	}
 
-	if (!createTexture("assets/specularMap.png", specularMap))
+	if (!createTexture("specularMap.png", specularMap))
 	{
 		return false;
 	}
