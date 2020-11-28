@@ -3,8 +3,26 @@
 #include <glad\glad.h>
 #include <GLFW\glfw3.h>
 
+#include <iostream>
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 400;
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow* window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(window, true);
+	}
+}
 
 #include <string>
 #include <fstream>
@@ -104,9 +122,6 @@ public:
 	{
 		if (handle)
 			glUseProgram(handle);
-		//glUniform1i(glGetUniformLocation(handle, "diffuseMap"), 0);
-		//glUniform1i(glGetUniformLocation(handle, "specularMap"), 1);
-		//glUniform2i(glGetUniformLocation(handle, "screenSize"), SCR_WIDTH, SCR_HEIGHT);
 	}
 
 	void Unbind()
@@ -339,8 +354,10 @@ class Texture
 {
 public:
 	Texture(unsigned int type_)
-		: type(type_)
-		, handle(0)
+		: handle(0)
+		, type(type_)
+		, format(GL_RGBA)
+		, pixelFormat(GL_UNSIGNED_BYTE)
 	{
 	}
 
@@ -362,10 +379,12 @@ public:
 		glBindTexture(type, 0);
 	}
 protected:
-	unsigned int type;
 	unsigned int handle;
-};
 
+	unsigned int type;
+	unsigned int format;
+	unsigned int pixelFormat;
+};
 
 class Texture2D : public Texture
 {
@@ -379,9 +398,8 @@ public:
 	{
 	}
 
-	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, void* data)
+	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, bool isHDR, void* data)
 	{
-		GLenum format;
 		if (nrComponents == 1)
 			format = GL_RED;
 		else if (nrComponents == 3)
@@ -389,9 +407,14 @@ public:
 		else if (nrComponents == 4)
 			format = GL_RGBA;
 
+		if (isHDR)
+			pixelFormat = GL_FLOAT;
+		else
+			pixelFormat = GL_UNSIGNED_BYTE;
+
 		glGenTextures(1, &handle);
 		glBindTexture(GL_TEXTURE_2D, handle);
-		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, width, height, 0, (GLint)format, (GLint)pixelFormat, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -404,11 +427,19 @@ public:
 
 	bool Create(char const* path)
 	{
+		bool isHDR = stbi_is_hdr(path);
+
 		int width, height, nrComponents;
-		unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+
+		void* data = nullptr;
+		if (isHDR)
+			data = stbi_loadf(path, &width, &height, &nrComponents, 0);
+		else
+			data = stbi_load(path, &width, &height, &nrComponents, 0);
+
 		if (data)
 		{
-			bool result = Create(width, height, nrComponents, data);
+			bool result = Create(width, height, nrComponents, isHDR, data);
 
 			stbi_image_free(data);
 
@@ -430,12 +461,13 @@ public:
 	}
 private:
 private:
-	unsigned int handle;
 };
+
 
 ShaderProgram shaderProgram;
 Texture2D diffuseMap;
 Texture2D specularMap;
+Texture2D envMap;
 VertexArrayObject vertexArrayObject;
 
 bool createScene()
@@ -471,6 +503,11 @@ bool createScene()
 		return false;
 	}
 
+	if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -481,13 +518,15 @@ void renderScene()
 
 	shaderProgram.Bind();
 	shaderProgram.SetUniform1i("diffuseMap", 0);
-	shaderProgram.SetUniform1i("specularMap", 0);
+	shaderProgram.SetUniform1i("specularMap", 1);
+	shaderProgram.SetUniform1i("envMap", 2);
 	shaderProgram.SetUniform2i("screenSize", SCR_WIDTH, SCR_HEIGHT);
 
 	vertexArrayObject.Bind();
 
 	diffuseMap.Bind(0);
 	specularMap.Bind(1);
+	envMap.Bind(2);
 
 	vertexArrayObject.Draw(GL_TRIANGLES, 6);
 }
@@ -501,22 +540,6 @@ void destroyScene()
 	vertexArrayObject.Destroy();
 
 	shaderProgram.Destroy();
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-	glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow* window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-	{
-		glfwSetWindowShouldClose(window, true);
-	}
 }
 
 int main()

@@ -1,37 +1,47 @@
 #version 330 core
+#define PI 3.14159265
+
 in vec2 screenCoord;
 
 uniform sampler2D diffuseMap;
 uniform sampler2D specularMap;
-uniform ivec2 screenSize;
+uniform sampler2D envMap;
+uniform vec2 screenSize;
 
 out vec4 FragColor;
 
-int xorshift(in int value) {
-    // Xorshift*32
-    // Based on George Marsaglia's work: http://www.jstatsoft.org/v08/i14/paper
-    value ^= value << 13;
-    value ^= value >> 17;
-    value ^= value << 5;
-    return value;
-}
 
-int nextInt(inout int seed) {
-    seed = xorshift(seed);
-    return seed;
-}
+//////////////////////////////////////////////////////////////////////////////
+#define RAND_NUMBER_MAX_IDX 8
+uniform vec4 randNumbers[RAND_NUMBER_MAX_IDX];
+int randSeed = 0;
 
-float nextFloat(inout int seed) {
-    seed = xorshift(seed);
-    // FIXME: This should have been a seed mapped from MIN..MAX to 0..1 instead
-    return abs(fract(float(seed) / 3141.592653));
-}
-
-vec2 rand2(in int seed)
+float rand()
 {
-	return vec2(nextFloat(seed), nextFloat(seed));
+	int idx = (randSeed + int(screenCoord.x * screenCoord.y)) % (RAND_NUMBER_MAX_IDX * 4);
+	//int idx = (randSeed) % (RAND_NUMBER_MAX_IDX * 4);
+	int idx1 = idx / RAND_NUMBER_MAX_IDX;
+	int idx2 = idx % 4;
+
+	randSeed++;
+
+	return randNumbers[idx1][idx2];
 }
 
+vec2 rand2()
+{
+	return vec2(rand(), rand());
+}
+
+vec3 rand3()
+{
+	return vec3(rand(), rand(), rand());
+}
+
+vec4 rand4()
+{
+	return vec4(rand(), rand(), rand(), rand());
+}
 ///////////////////////////////////////////////////////////////////////////////
 struct Ray {
     vec3 origin;
@@ -63,6 +73,14 @@ struct World
 {
 	int objectCount;
 	Sphere objects[10];
+};
+
+struct Material
+{
+	vec3 albedo;
+	float metallic;
+	float roughness;
+	float transparent;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -110,7 +128,10 @@ Camera CameraConstructor(vec3 lower_left_corner, vec3 horizontal, vec3 vertical,
 
 Ray CameraGetRay(Camera camera, vec2 offset)
 {
-	Ray ray = RayConstructor(camera.origin, camera.lower_left_corner + offset.x * camera.horizontal + offset.y * camera.vertical);
+	Ray ray = RayConstructor(camera.origin, 
+		camera.lower_left_corner + 
+		offset.x * camera.horizontal + 
+		offset.y * camera.vertical);
 
 	return ray;
 }
@@ -194,6 +215,31 @@ bool WorldHit(World world, Ray ray, float t_min, float t_max, inout HitRecord re
 	return hitSomething;
 }
 
+vec3 random_in_unit_sphere()
+{
+	vec3 p;
+	
+	float theta = rand() * 2.0 * PI;
+	float phi   = rand() * PI;
+	p.y = cos(phi);
+	p.x = sin(phi) * cos(theta);
+	p.z = sin(phi) * sin(theta);
+
+	return p;
+}
+
+vec3 GetEnvironmentColor(World world, Ray ray)
+{
+	vec3 unit_direction = normalize(ray.direction);
+	float t = 0.5 * (unit_direction.y + 1.0);
+	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+
+	//vec3 dir = normalize(ray.direction);
+	//float theta = acos(dir.y) / PI;
+	//float phi = (atan(dir.x, dir.z) / (PI) + 1.0) / 2.0;
+	//return texture(envMap, vec2(phi, theta)).xyz;
+}
+
 vec3 WorldTrace(World world, Ray ray)
 {
 	HitRecord hitRecord;
@@ -218,10 +264,9 @@ void main()
 	int ns = 100;
 	for(int i=0; i<ns; i++)
 	{
-		Ray ray = CameraGetRay(camera, screenCoord + rand2(int(screenCoord.x*ns+screenCoord.y*ns))/screenSize );
+		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
 		col += WorldTrace(world, ray);
 	}
-
 	col /= ns;
 
 	FragColor.xyz = col;

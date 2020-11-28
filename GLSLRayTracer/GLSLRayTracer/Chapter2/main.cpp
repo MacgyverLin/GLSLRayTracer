@@ -3,8 +3,26 @@
 #include <glad\glad.h>
 #include <GLFW\glfw3.h>
 
+#include <iostream>
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 400;
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow* window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(window, true);
+	}
+}
 
 #include <string>
 #include <fstream>
@@ -104,9 +122,6 @@ public:
 	{
 		if (handle)
 			glUseProgram(handle);
-		//glUniform1i(glGetUniformLocation(handle, "diffuseMap"), 0);
-		//glUniform1i(glGetUniformLocation(handle, "specularMap"), 1);
-		//glUniform2i(glGetUniformLocation(handle, "screenSize"), SCR_WIDTH, SCR_HEIGHT);
 	}
 
 	void Unbind()
@@ -339,8 +354,10 @@ class Texture
 {
 public:
 	Texture(unsigned int type_)
-		: type(type_)
-		, handle(0)
+		: handle(0)
+		, type(type_)
+		, format(GL_RGBA)
+		, pixelFormat(GL_UNSIGNED_BYTE)
 	{
 	}
 
@@ -362,10 +379,12 @@ public:
 		glBindTexture(type, 0);
 	}
 protected:
-	unsigned int type;
 	unsigned int handle;
-};
 
+	unsigned int type;
+	unsigned int format;
+	unsigned int pixelFormat;
+};
 
 class Texture2D : public Texture
 {
@@ -379,9 +398,8 @@ public:
 	{
 	}
 
-	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, void* data)
+	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, bool isHDR, void* data)
 	{
-		GLenum format;
 		if (nrComponents == 1)
 			format = GL_RED;
 		else if (nrComponents == 3)
@@ -389,9 +407,14 @@ public:
 		else if (nrComponents == 4)
 			format = GL_RGBA;
 
+		if (isHDR)
+			pixelFormat = GL_FLOAT;
+		else
+			pixelFormat = GL_UNSIGNED_BYTE;
+
 		glGenTextures(1, &handle);
 		glBindTexture(GL_TEXTURE_2D, handle);
-		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, width, height, 0, (GLint)format, (GLint)pixelFormat, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -404,11 +427,19 @@ public:
 
 	bool Create(char const* path)
 	{
+		bool isHDR = stbi_is_hdr(path);
+
 		int width, height, nrComponents;
-		unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+
+		void* data = nullptr;
+		if (isHDR)
+			data = stbi_loadf(path, &width, &height, &nrComponents, 0);
+		else
+			data = stbi_load(path, &width, &height, &nrComponents, 0);
+
 		if (data)
 		{
-			bool result = Create(width, height, nrComponents, data);
+			bool result = Create(width, height, nrComponents, isHDR, data);
 
 			stbi_image_free(data);
 
@@ -430,12 +461,91 @@ public:
 	}
 private:
 private:
-	unsigned int handle;
 };
+
+class NoiseTexture2D : public Texture2D
+{
+public:
+	NoiseTexture2D()
+		: Texture2D()
+	{
+	}
+
+	~NoiseTexture2D()
+	{
+	}
+
+	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, bool isHDR, void* data)
+	{
+		if (nrComponents == 1)
+			format = GL_RED;
+		else if (nrComponents == 3)
+			format = GL_RGB;
+		else if (nrComponents == 4)
+			format = GL_RGBA;
+
+		if (isHDR)
+			pixelFormat = GL_FLOAT;
+		else
+			pixelFormat = GL_UNSIGNED_BYTE;
+
+		glGenTextures(1, &handle);
+		glBindTexture(GL_TEXTURE_2D, handle);
+		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)format, width, height, 0, (GLint)format, (GLint)pixelFormat, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		return true;
+	}
+
+	bool Create(char const* path)
+	{
+		bool isHDR = stbi_is_hdr(path);
+
+		int width, height, nrComponents;
+
+		void* data = nullptr;
+		if (isHDR)
+			data = stbi_loadf(path, &width, &height, &nrComponents, 0);
+		else
+			data = stbi_load(path, &width, &height, &nrComponents, 0);
+
+		if (data)
+		{
+			bool result = Create(width, height, nrComponents, isHDR, data);
+
+			stbi_image_free(data);
+
+			return result;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	void Destroy()
+	{
+		if (handle)
+		{
+			glDeleteTextures(1, &handle);
+			handle = 0;
+		}
+	}
+private:
+private:
+};
+
+
 
 ShaderProgram shaderProgram;
 Texture2D diffuseMap;
 Texture2D specularMap;
+Texture2D envMap;
 VertexArrayObject vertexArrayObject;
 
 bool createScene()
@@ -471,6 +581,11 @@ bool createScene()
 		return false;
 	}
 
+	if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -481,13 +596,15 @@ void renderScene()
 
 	shaderProgram.Bind();
 	shaderProgram.SetUniform1i("diffuseMap", 0);
-	shaderProgram.SetUniform1i("specularMap", 0);
+	shaderProgram.SetUniform1i("specularMap", 1);
+	shaderProgram.SetUniform1i("envMap", 2);
 	shaderProgram.SetUniform2i("screenSize", SCR_WIDTH, SCR_HEIGHT);
 
 	vertexArrayObject.Bind();
 
 	diffuseMap.Bind(0);
 	specularMap.Bind(1);
+	envMap.Bind(2);
 
 	vertexArrayObject.Draw(GL_TRIANGLES, 6);
 }
@@ -503,24 +620,161 @@ void destroyScene()
 	shaderProgram.Destroy();
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
+#include <stdio.h>
+#include <time.h>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+double Random(void);
+void   PlantSeeds(long x);
+void   GetSeed(long* x);
+void   PutSeed(long x);
+void   SelectStream(int index);
+void   TestRandom(void);
+
+#define MODULUS    2147483647 /* DON'T CHANGE THIS VALUE                  */
+#define MULTIPLIER 48271      /* DON'T CHANGE THIS VALUE                  */
+#define CHECK      399268537  /* DON'T CHANGE THIS VALUE                  */
+#define STREAMS    256        /* # of streams, DON'T CHANGE THIS VALUE    */
+#define A256       22925      /* jump multiplier, DON'T CHANGE THIS VALUE */
+#define DEFAULT    123456789  /* initial seed, use 0 < DEFAULT < MODULUS  */
+
+static long seed[STREAMS] = { DEFAULT };  /* current state of each stream   */
+static int  stream = 0;          /* stream index, 0 is the default */
+static int  initialized = 0;          /* test for stream initialization */
+
+
+double Random(void)
+/* ----------------------------------------------------------------
+ * Random returns a pseudo-random real number uniformly distributed
+ * between 0.0 and 1.0.
+ * ----------------------------------------------------------------
+ */
 {
-	glViewport(0, 0, width, height);
+	const long Q = MODULUS / MULTIPLIER;
+	const long R = MODULUS % MULTIPLIER;
+	long t;
+
+	t = MULTIPLIER * (seed[stream] % Q) - R * (seed[stream] / Q);
+	if (t > 0)
+		seed[stream] = t;
+	else
+		seed[stream] = t + MODULUS;
+	return ((double)seed[stream] / MODULUS);
 }
 
-void processInput(GLFWwindow* window)
+
+void PlantSeeds(long x)
+/* ---------------------------------------------------------------------
+ * Use this function to set the state of all the random number generator
+ * streams by "planting" a sequence of states (seeds), one per stream,
+ * with all states dictated by the state of the default stream.
+ * The sequence of planted states is separated one from the next by
+ * 8,367,782 calls to Random().
+ * ---------------------------------------------------------------------
+ */
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-	{
-		glfwSetWindowShouldClose(window, true);
+	const long Q = MODULUS / A256;
+	const long R = MODULUS % A256;
+	int  j;
+	int  s;
+
+	initialized = 1;
+	s = stream;                            /* remember the current stream */
+	SelectStream(0);                       /* change to stream 0          */
+	PutSeed(x);                            /* set seed[0]                 */
+	stream = s;                            /* reset the current stream    */
+	for (j = 1; j < STREAMS; j++) {
+		x = A256 * (seed[j - 1] % Q) - R * (seed[j - 1] / Q);
+		if (x > 0)
+			seed[j] = x;
+		else
+			seed[j] = x + MODULUS;
 	}
+}
+
+
+void PutSeed(long x)
+/* ---------------------------------------------------------------
+ * Use this function to set the state of the current random number
+ * generator stream according to the following conventions:
+ *    if x > 0 then x is the state (unless too large)
+ *    if x < 0 then the state is obtained from the system clock
+ *    if x = 0 then the state is to be supplied interactively
+ * ---------------------------------------------------------------
+ */
+{
+	char ok = 0;
+
+	if (x > 0)
+		x = x % MODULUS;                       /* correct if x is too large  */
+	if (x < 0)
+		x = ((unsigned long)time((time_t*)NULL)) % MODULUS;
+	if (x == 0)
+		while (!ok) {
+			printf("\nEnter a positive integer seed (9 digits or less) >> ");
+			scanf("%ld", &x);
+			ok = (0 < x) && (x < MODULUS);
+			if (!ok)
+				printf("\nInput out of range ... try again\n");
+		}
+	seed[stream] = x;
+}
+
+
+void GetSeed(long* x)
+/* ---------------------------------------------------------------
+ * Use this function to get the state of the current random number
+ * generator stream.
+ * ---------------------------------------------------------------
+ */
+{
+	*x = seed[stream];
+}
+
+
+void SelectStream(int index)
+/* ------------------------------------------------------------------
+ * Use this function to set the current random number generator
+ * stream -- that stream from which the next random number will come.
+ * ------------------------------------------------------------------
+ */
+{
+	stream = ((unsigned int)index) % STREAMS;
+	if ((initialized == 0) && (stream != 0))   /* protect against        */
+		PlantSeeds(DEFAULT);                     /* un-initialized streams */
+}
+
+
+void test(void)
+/* ------------------------------------------------------------------
+ * Use this (optional) function to test for a correct implementation.
+ * ------------------------------------------------------------------
+ */
+{
+	long   i;
+	long   x;
+	double u;
+	char   ok = 0;
+
+	SelectStream(0);                  /* select the default stream */
+	PutSeed(1);                       /* and set the state to 1    */
+	for (i = 0; i < 10000; i++)
+		u = Random();
+	GetSeed(&x);                      /* get the new state value   */
+	ok = (x == CHECK);                /* and check for correctness */
+
+	SelectStream(1);                  /* select stream 1                 */
+	PlantSeeds(1);                    /* set the state of all streams    */
+	GetSeed(&x);                      /* get the state of stream 1       */
+	ok = ok && (x == A256);           /* x should be the jump multiplier */
+	if (ok)
+		printf("\n The implementation of rngs.c is correct.\n\n");
+	else
+		printf("\n\a ERROR -- the implementation of rngs.c is not correct.\n\n");
 }
 
 int main()
 {
+	test();
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
