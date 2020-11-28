@@ -12,20 +12,37 @@ out vec4 FragColor;
 
 
 //////////////////////////////////////////////////////////////////////////////
-#define RAND_NUMBER_MAX_IDX 8
-uniform vec4 randNumbers[RAND_NUMBER_MAX_IDX];
-int randSeed = 0;
+uint m_u = uint(521288629);
+uint m_v = uint(362436069);
+
+uint GetUintCore(inout uint u, inout uint v)
+{
+	v = uint(uint(36969) * (v & uint(65535)) + (v >> 16));
+	u = uint(uint(18000) * (u & uint(65535)) + (u >> 16));
+	return (v << 16) + u;
+}
+
+float GetUniformCore(inout uint u, inout uint v)
+{
+	// 0 <= u <= 2^32
+	uint z = GetUintCore(u, v);
+	// The magic number is 1/(2^32 + 1) and so result is positive and less than 1.
+	return float(z) / uint(4294967295);
+}
+
+float GetUniform()
+{
+	return GetUniformCore(m_u, m_v);
+}
+
+unsigned int GetUint()
+{
+	return GetUintCore(m_u, m_v);
+}
 
 float rand()
 {
-	int idx = (randSeed + int(screenCoord.x * screenCoord.y)) % (RAND_NUMBER_MAX_IDX * 4);
-	//int idx = (randSeed) % (RAND_NUMBER_MAX_IDX * 4);
-	int idx1 = idx / RAND_NUMBER_MAX_IDX;
-	int idx2 = idx % 4;
-
-	randSeed++;
-
-	return randNumbers[idx1][idx2];
+	return GetUniform();
 }
 
 vec2 rand2()
@@ -42,6 +59,7 @@ vec4 rand4()
 {
 	return vec4(rand(), rand(), rand(), rand());
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 struct Ray {
     vec3 origin;
@@ -226,18 +244,6 @@ vec3 random_in_unit_sphere()
 	p.z = sin(phi) * sin(theta);
 
 	return p;
-}
-
-vec3 GetEnvironmentColor(World world, Ray ray)
-{
-	vec3 unit_direction = normalize(ray.direction);
-	float t = 0.5 * (unit_direction.y + 1.0);
-	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
-
-	//vec3 dir = normalize(ray.direction);
-	//float theta = acos(dir.y) / PI;
-	//float phi = (atan(dir.x, dir.z) / (PI) + 1.0) / 2.0;
-	//return texture(envMap, vec2(phi, theta)).xyz;
 }
 
 vec3 WorldTrace(World world, Ray ray)

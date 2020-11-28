@@ -493,12 +493,12 @@ bool createScene()
 		return false;
 	}
 
-	if (!diffuseMap.Create("diffuseMap.png"))
+	if (!diffuseMap.Create("../assets/diffuseMap.png"))
 	{
 		return false;
 	}
 
-	if (!specularMap.Create("specularMap.png"))
+	if (!specularMap.Create("../assets/specularMap.png"))
 	{
 		return false;
 	}

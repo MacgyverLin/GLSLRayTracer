@@ -10,18 +10,6 @@ void processInput(GLFWwindow* window);
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 400;
-#define RAND_NUMBER_MAX_IDX 8
-float randomNumbers[4 * RAND_NUMBER_MAX_IDX];
-
-float random()
-{
-	return ((float)rand()) / RAND_MAX;
-}
-
-float random(float min, float max)
-{
-	return random() * (max - min) + min;
-}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -544,18 +532,13 @@ bool createScene()
 	}
 
 	shaderProgram.Bind();
-	for (int i = 0; i < 4 * RAND_NUMBER_MAX_IDX; i++)
-	{
-		randomNumbers[i] = random(0.0f, 1.0f);
-	}
-	shaderProgram.SetUniform4fv("randNumbers", RAND_NUMBER_MAX_IDX, randomNumbers);
 
-	if (!diffuseMap.Create("diffuseMap.png"))
+	if (!diffuseMap.Create("../assets/diffuseMap.png"))
 	{
 		return false;
 	}
 
-	if (!specularMap.Create("specularMap.png"))
+	if (!specularMap.Create("../assets/specularMap.png"))
 	{
 		return false;
 	}
