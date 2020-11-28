@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter1", "GLSLRayTracer\C
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter7", "GLSLRayTracer\Chapter7\Chapter7.vcxproj", "{0E2E1D35-7DED-4CA7-ADC6-996E99DA4EA5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter8", "GLSLRayTracer\Chapter8\Chapter8.vcxproj", "{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -91,6 +93,14 @@ Global
 		{0E2E1D35-7DED-4CA7-ADC6-996E99DA4EA5}.Release|x64.Build.0 = Release|x64
 		{0E2E1D35-7DED-4CA7-ADC6-996E99DA4EA5}.Release|x86.ActiveCfg = Release|Win32
 		{0E2E1D35-7DED-4CA7-ADC6-996E99DA4EA5}.Release|x86.Build.0 = Release|Win32
+		{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}.Debug|x64.ActiveCfg = Debug|x64
+		{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}.Debug|x64.Build.0 = Debug|x64
+		{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}.Debug|x86.ActiveCfg = Debug|Win32
+		{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}.Debug|x86.Build.0 = Debug|Win32
+		{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}.Release|x64.ActiveCfg = Release|x64
+		{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}.Release|x64.Build.0 = Release|x64
+		{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}.Release|x86.ActiveCfg = Release|Win32
+		{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
