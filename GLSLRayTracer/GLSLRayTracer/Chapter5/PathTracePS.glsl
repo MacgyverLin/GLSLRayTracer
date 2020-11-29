@@ -130,18 +130,10 @@ bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-World WorldConstructor()
-{
-	World world;
+uniform Camera camera;
+uniform World world;
 
-	world.objectCount = 2;
-	world.objects[0] = SphereConstructor(vec3(0.0, 0.0, -1.0), 0.5);
-	world.objects[1] = SphereConstructor(vec3(0.0, -100.5, -1.0), 100.0);
-
-	return world;
-}
-
-bool WorldHit(World world, Ray ray, float t_min, float t_max, inout HitRecord rec)
+bool WorldHit(Ray ray, float t_min, float t_max, inout HitRecord rec)
 {
 	HitRecord tempRec;
 	float cloestSoFar = t_max;
@@ -161,10 +153,10 @@ bool WorldHit(World world, Ray ray, float t_min, float t_max, inout HitRecord re
 	return hitSomething;
 }
 
-vec3 WorldTrace(World world, Ray ray)
+vec3 WorldTrace(Ray ray)
 {
 	HitRecord hitRecord;
-	if(WorldHit(world, ray, 0.0, 1000000.0, hitRecord))
+	if(WorldHit(ray, 0.0, 1000000.0, hitRecord))
 	{
 		return 0.5 * vec3(hitRecord.normal.x+1, hitRecord.normal.y+1, hitRecord.normal.z+1);
 	}
@@ -178,19 +170,11 @@ vec3 WorldTrace(World world, Ray ray)
 
 void main()
 {
-	World world = WorldConstructor();
-	Camera camera = CameraConstructor(vec3(-2.0, -1.0, -1.0), vec3(4.0, 0.0, 0.0), vec3(0.0, 2.0, 0.0), vec3(0.0, 0.0, 0.0));
+	Ray ray = RayConstructor(camera.origin, 
+							 camera.lower_left_corner + 
+							 screenCoord.x * camera.horizontal + 
+							 screenCoord.y * camera.vertical - camera.origin);
 	
-	int ns = 100;
-	vec3 col = vec3(0.0, 0.0, 0.0);
-	for(int s=0; s<ns; s++)
-	{
-		Ray ray = RayConstructor(camera.origin, camera.lower_left_corner + screenCoord.x * camera.horizontal + screenCoord.y * camera.vertical);
-		col += WorldTrace(world, ray);
-	}
-
-	col /=ns;
-
-	FragColor.xyz = col;
+	FragColor.xyz = WorldTrace(ray);
 	FragColor.w = 1.0;
 }

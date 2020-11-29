@@ -129,137 +129,118 @@ public:
 		glUseProgram(0);
 	}
 
+	int GetError()
+	{
+		int error = glGetError();
+
+		return error;
+	}
+
 	void SetUniform1i(const char* name_, int v0_)
 	{
-		int location = glGetUniformLocation(handle, name_);
+		GetError();
+		int i = glGetUniformLocation(handle, name_);
+		GetError();
 
-		glUniform1i(location, v0_);
+		glUniform1i(glGetUniformLocation(handle, name_), v0_);
 	}
 
 	void SetUniform2i(const char* name_, int v0_, int v1_)
 	{
-		int location = glGetUniformLocation(handle, name_);
+		GetError();
+		int i = glGetUniformLocation(handle, name_);
+		GetError();
 
-		glUniform2i(location, v0_, v1_);
+		glUniform2i(glGetUniformLocation(handle, name_), v0_, v1_);
 	}
 
 	void SetUniform3i(const char* name_, int v0_, int v1_, int v2_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform3i(location, v0_, v1_, v2_);
+		glUniform3i(glGetUniformLocation(handle, name_), v0_, v1_, v2_);
 	}
 
 	void SetUniform4i(const char* name_, int v0_, int v1_, int v2_, int v3_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform4i(location, v0_, v1_, v2_, v3_);
+		glUniform4i(glGetUniformLocation(handle, name_), v0_, v1_, v2_, v3_);
 	}
 
 	void SetUniform1f(const char* name_, float v0_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform1f(location, v0_);
+		glUniform1f(glGetUniformLocation(handle, name_), v0_);
 	}
 
 	void SetUniform2f(const char* name_, float v0_, float v1_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform2f(location, v0_, v1_);
+		glUniform2f(glGetUniformLocation(handle, name_), v0_, v1_);
 	}
 
 	void SetUniform3f(const char* name_, float v0_, float v1_, float v2_)
 	{
-		int location = glGetUniformLocation(handle, name_);
+		GetError();
+		int i = glGetUniformLocation(handle, name_);
+		GetError();
 
-		glUniform3f(location, v0_, v1_, v2_);
+		glUniform3f(glGetUniformLocation(handle, name_), v0_, v1_, v2_);
 	}
 
 	void SetUniform4f(const char* name_, float v0_, float v1_, float v2_, float v3_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform4f(location, v0_, v1_, v2_, v3_);
+		glUniform4f(glGetUniformLocation(handle, name_), v0_, v1_, v2_, v3_);
 	}
 
 	void SetUniform1iv(const char* name_, int count_, const int* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform1iv(location, count_, v_);
+		glUniform1iv(glGetUniformLocation(handle, name_), count_, v_);
 	}
 
 	void SetUniform2iv(const char* name_, int count_, const int* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform2iv(location, count_, v_);
+		glUniform2iv(glGetUniformLocation(handle, name_), count_, v_);
 	}
 
 	void SetUniform3iv(const char* name_, int count_, const int* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform3iv(location, count_, v_);
+		glUniform3iv(glGetUniformLocation(handle, name_), count_, v_);
 	}
 
 	void SetUniform4iv(const char* name_, int count_, const int* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform4iv(location, count_, v_);
+		glUniform4iv(glGetUniformLocation(handle, name_), count_, v_);
 	}
 
 	void SetUniform1fv(const char* name_, int count_, const float* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform1fv(location, count_, v_);
+		glUniform1fv(glGetUniformLocation(handle, name_), count_, v_);
 	}
 
 	void SetUniform2fv(const char* name_, int count_, const float* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform2fv(location, count_, v_);
+		glUniform2fv(glGetUniformLocation(handle, name_), count_, v_);
 	}
 
 	void SetUniform3fv(const char* name_, int count_, const float* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform3fv(location, count_, v_);
+		glUniform3fv(glGetUniformLocation(handle, name_), count_, v_);
 	}
 
 	void SetUniform4fv(const char* name_, int count_, const float* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniform4fv(location, count_, v_);
+		glUniform4fv(glGetUniformLocation(handle, name_), count_, v_);
 	}
 
 	void SetUniformMatrix2fv(const char* name_, int count_, const float* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniformMatrix2fv(location, count_, true, v_);
+		glUniformMatrix2fv(glGetUniformLocation(handle, name_), count_, true, v_);
 	}
 
 	void SetUniformMatrix3fv(const char* name_, int count_, const float* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniformMatrix3fv(location, count_, true, v_);
+		glUniformMatrix3fv(glGetUniformLocation(handle, name_), count_, true, v_);
 	}
 
 	void SetUniformMatrix4fv(const char* name_, int count_, const float* v_)
 	{
-		int location = glGetUniformLocation(handle, name_);
-
-		glUniformMatrix4fv(location, count_, true, v_);
+		glUniformMatrix4fv(glGetUniformLocation(handle, name_), count_, true, v_);
 	}
 private:
 	void CheckCompileErrors(GLuint shader, std::string type)
@@ -529,15 +510,18 @@ bool createScene()
 		return false;
 	}
 
-	shaderProgram.Bind();
-
-	if (!envMap.Create("../assets/envmap6.jpg"))
+	if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
 	{
 		return false;
 	}
 
 	return true;
 }
+
+#define MAT_LAMBERTIAN		0
+#define MAT_METALLIC		1
+#define MAT_DIELECTRIC		2
+#define MAT_PBR				3
 
 void renderScene()
 {
@@ -547,6 +531,56 @@ void renderScene()
 	shaderProgram.Bind();
 	shaderProgram.SetUniform1i("envMap", 0);
 	shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+
+	shaderProgram.SetUniform3f("camera.lower_left_corner", -2.0, -1.0, -1.0);
+	shaderProgram.SetUniform3f("camera.horizontal", 4.0, 0.0, 0.0);
+	shaderProgram.SetUniform3f("camera.vertical", 0.0, 2.0, 0.0);
+	shaderProgram.SetUniform3f("camera.origin", 0.0, 0.0, 0.0);
+
+	shaderProgram.SetUniform1i("world.objectCount", 4);
+	shaderProgram.SetUniform3f("world.objects[0].center", 0.0, 0.0, -1.0);
+	shaderProgram.SetUniform1f("world.objects[0].radius", 0.5);
+	shaderProgram.SetUniform1i("world.objects[0].materialType", MAT_LAMBERTIAN);
+	shaderProgram.SetUniform1i("world.objects[0].material", 0);
+	shaderProgram.SetUniform3f("world.objects[1].center", 1.0, 0.0, -1.0);
+	shaderProgram.SetUniform1f("world.objects[1].radius", 0.5);
+	shaderProgram.SetUniform1i("world.objects[1].materialType", MAT_METALLIC);
+	shaderProgram.SetUniform1i("world.objects[1].material", 0);
+	shaderProgram.SetUniform3f("world.objects[2].center", -1.0, 0.0, -1.0);
+	shaderProgram.SetUniform1f("world.objects[2].radius", 0.5);
+	shaderProgram.SetUniform1i("world.objects[2].materialType", MAT_DIELECTRIC);
+	shaderProgram.SetUniform1i("world.objects[2].material", 0);
+	shaderProgram.SetUniform3f("world.objects[3].center", 0.0, -100.5, -1.0);
+	shaderProgram.SetUniform1f("world.objects[3].radius", 100.0);
+	shaderProgram.SetUniform1i("world.objects[3].materialType", MAT_LAMBERTIAN);
+	shaderProgram.SetUniform1i("world.objects[3].material", 1);
+
+	shaderProgram.SetUniform3f("lambertMaterials[0].albedo", 0.1, 0.2, 0.5);
+	shaderProgram.SetUniform3f("lambertMaterials[1].albedo", 0.8, 0.8, 0.0);
+	shaderProgram.SetUniform3f("lambertMaterials[2].albedo", 0.0, 1.0, 0.0);
+	shaderProgram.SetUniform3f("lambertMaterials[3].albedo", 0.0, 0.0, 1.0);
+
+	shaderProgram.SetUniform3f("metallicMaterials[0].albedo", 0.8, 0.6, 0.0);
+	shaderProgram.SetUniform1f("metallicMaterials[0].roughness", 0.0);
+	shaderProgram.SetUniform3f("metallicMaterials[1].albedo", 0.8, 0.6, 0.0);
+	shaderProgram.SetUniform1f("metallicMaterials[1].roughness", 0.0);
+	shaderProgram.SetUniform3f("metallicMaterials[2].albedo", 0.0, 0.0, 1.0);
+	shaderProgram.SetUniform1f("metallicMaterials[2].roughness", 0.0);
+	shaderProgram.SetUniform3f("metallicMaterials[3].albedo", 0.0, 0.0, 1.0);
+	shaderProgram.SetUniform1f("metallicMaterials[3].roughness", 0.0);
+
+	shaderProgram.SetUniform3f("dielectricMaterials[0].albedo", 1.0, 1.0, 1.0);
+	shaderProgram.SetUniform1f("dielectricMaterials[0].roughness", 0.0);
+	shaderProgram.SetUniform1f("dielectricMaterials[0].ior", 1.5);
+	shaderProgram.SetUniform3f("dielectricMaterials[1].albedo", 1.0, 1.0, 1.0);
+	shaderProgram.SetUniform1f("dielectricMaterials[1].roughness", 0.0);
+	shaderProgram.SetUniform1f("dielectricMaterials[1].ior", 1.5);
+	shaderProgram.SetUniform3f("dielectricMaterials[2].albedo", 1.0, 1.0, 1.0);
+	shaderProgram.SetUniform1f("dielectricMaterials[2].roughness", 0.0);
+	shaderProgram.SetUniform1f("dielectricMaterials[2].ior", 1.5);
+	shaderProgram.SetUniform3f("dielectricMaterials[3].albedo", 1.0, 1.0, 1.0);
+	shaderProgram.SetUniform1f("dielectricMaterials[3].roughness", 0.0);
+	shaderProgram.SetUniform1f("dielectricMaterials[3].ior", 1.5);
 
 	vertexArrayObject.Bind();
 

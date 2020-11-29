@@ -2,8 +2,8 @@
 #define PI 3.14159265
 #define RAYCAST_MAX 100000.0
 
-in vec2 screenCoord;
 
+in vec2 screenCoord;
 uniform sampler2D envMap;
 uniform vec2 screenSize;
 
@@ -15,15 +15,16 @@ uint m_v = uint(362436069);
 
 uint GetUintCore(inout uint u, inout uint v)
 {
-	v = uint(36969) * (v & uint(65535)) + (v >> 16);
-	u = uint(18000) * (u & uint(65535)) + (u >> 16);
+	v = uint(uint(36969) * (v & uint(65535)) + (v >> 16));
+	u = uint(uint(18000) * (u & uint(65535)) + (u >> 16));
 	return (v << 16) + u;
 }
 
 float GetUniformCore(inout uint u, inout uint v)
 {
+	// 0 <= u <= 2^32
 	uint z = GetUintCore(u, v);
-	
+	// The magic number is 1/(2^32 + 1) and so result is positive and less than 1.
 	return float(z) / uint(4294967295);
 }
 
@@ -35,6 +36,12 @@ float GetUniform()
 uint GetUint()
 {
 	return GetUintCore(m_u, m_v);
+}
+
+void seed(vec2 screenCoord)
+{
+	m_u = uint(mod(521288629.0, screenCoord.x * screenCoord.y));
+	m_v = uint(mod(362436069.0, screenCoord.x * screenCoord.y * screenCoord.y));
 }
 
 float rand()
@@ -59,21 +66,21 @@ vec4 rand4()
 
 vec3 random_in_unit_sphere()
 {
-	// vec3 p;
-	// 
-	// do
-	// {
-	// 	p = 2.0 * rand3() - vec3(1, 1, 1);
-	// }while(dot(p, p)>=1.0);
-	// return p;
-
 	vec3 p;
 	
-	float theta = rand() * 2.0 * PI;
-	float phi   = rand() * PI;
-	p.y = cos(phi);
-	p.x = sin(phi) * cos(theta);
-	p.z = sin(phi) * sin(theta);
+	/*
+	do
+	{
+		p = 2.0 * rand3() - vec3(1, 1, 1);
+	}while(dot(p, p)>=1.0);
+	return p;
+	*/
+
+	float phi		= rand() * 2.0 * PI;
+	float theta		= rand() * PI;
+	p.y = cos(theta);
+	p.x = sin(theta) * cos(phi);
+	p.z = sin(theta) * sin(phi);
 	
 	return p;
 }
@@ -92,15 +99,6 @@ struct Camera
 	vec3 origin;
 }; 
 
-struct LambertianMaterial
-{
-	vec3 albedo;
-};
-
-struct MetallicMaterial
-{
-	vec3 albedo;
-};
 
 struct Sphere 
 {
@@ -126,8 +124,7 @@ struct World
 	Sphere objects[10];
 };
 
-
-//////////////////////////////////////////////-//////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
 Ray RayConstructor(vec3 origin, vec3 direction)
 {
 	Ray ray;
@@ -140,6 +137,21 @@ Ray RayConstructor(vec3 origin, vec3 direction)
 vec3 RayGetPointAt(Ray ray, float t)
 {
 	return ray.origin + t * ray.direction;
+}
+
+float RayHitSphere(Ray ray, Sphere sphere)
+{
+	vec3 oc = ray.origin - sphere.center;
+	
+	float a = dot(ray.direction, ray.direction);
+	float b = 2.0 * dot(oc, ray.direction);
+	float c = dot(oc, oc) - sphere.radius * sphere.radius;
+
+	float discriminant = b * b - 4 * a * c;
+	if(discriminant<0)
+		return -1.0;
+	else
+		return (-b - sqrt(discriminant)) / (2.0 * a);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -155,15 +167,69 @@ Camera CameraConstructor(vec3 lower_left_corner, vec3 horizontal, vec3 vertical,
 	return camera;
 }
 
-Ray CameraGetRay(Camera camera, vec2 uv)
+Ray CameraGetRay(Camera camera, vec2 offset)
 {
 	Ray ray = RayConstructor(camera.origin, 
 		camera.lower_left_corner + 
-		uv.x * camera.horizontal + 
-		uv.y * camera.vertical);
+		offset.x * camera.horizontal + 
+		offset.y * camera.vertical);
 
 	return ray;
 }
+
+////////////////////////////////////////////////////////////////////////////////////
+Sphere SphereConstructor(vec3 center, float radius)
+{
+	Sphere sphere;
+
+	sphere.center = center;
+	sphere.radius = radius;
+
+	return sphere;
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord hitRecord)
+{
+	vec3 oc = ray.origin - sphere.center;
+	
+	float a = dot(ray.direction, ray.direction);
+	float b = 2.0 * dot(oc, ray.direction);
+	float c = dot(oc, oc) - sphere.radius * sphere.radius;
+
+	float discriminant = b * b - 4 * a * c;
+	if(discriminant>0)
+	{
+		float temp = (-b - sqrt(discriminant)) / (2.0 * a);
+		if(temp < t_max && temp> t_min)
+		{
+			hitRecord.t = temp;
+			hitRecord.position = RayGetPointAt(ray, hitRecord.t);
+			hitRecord.normal = (hitRecord.position - sphere.center) / sphere.radius;
+			
+			hitRecord.materialType = sphere.materialType;
+			hitRecord.material = sphere.material;
+
+			return true;
+		}
+
+		temp = (-b + sqrt(discriminant)) / (a);
+		if(temp < t_max && temp> t_min)
+		{
+			hitRecord.t = temp;
+			hitRecord.position = RayGetPointAt(ray, hitRecord.t);
+			hitRecord.normal = (hitRecord.position - sphere.center) / sphere.radius;
+			
+			hitRecord.materialType = sphere.materialType;
+			hitRecord.material = sphere.material;
+
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////
 #define MAT_LAMBERTIAN		0
@@ -310,7 +376,7 @@ bool DielectricScatter2(in Dielectric dielectric, in Ray incident, in HitRecord 
 	{
 		outward_normal = -hitRecord.normal;
 		ni_over_nt = dielectric.ior;
-		cosine = dot(incident.direction, hitRecord.normal) / length(incident.direction); // incident angle
+		cosine = dielectric.ior * dot(incident.direction, hitRecord.normal) / length(incident.direction); // incident angle
 	}
 	else // hit from outside
 	{
@@ -348,148 +414,47 @@ bool DielectricScatter(in Dielectric dielectric, in Ray incident, in HitRecord h
 	return DielectricScatter2(dielectric, incident, hitRecord, scattered, attenuation);
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-Sphere SphereConstructor(vec3 center, float radius, int materialType, int material)
+/////////////////////////////////////////////////////////////////////////////////
+uniform World world;
+uniform Camera camera;
+uniform Lambertian lambertMaterials[4];
+uniform Metallic metallicMaterials[4];
+uniform Dielectric dielectricMaterials[4];
+
+bool MaterialScatter(in Ray incident, in HitRecord hitRecord, out Ray scatter, out vec3 attenuation)
 {
-	Sphere sphere;
-
-	sphere.center = center;
-	sphere.radius = radius;
-	sphere.materialType = materialType;
-	sphere.material = material;
-
-	return sphere;
+	if(hitRecord.materialType==MAT_LAMBERTIAN)
+		return LambertianScatter(lambertMaterials[hitRecord.material], incident, hitRecord, scatter, attenuation);
+	else if(hitRecord.materialType==MAT_METALLIC)
+		return MetallicScatter(metallicMaterials[hitRecord.material], incident, hitRecord, scatter, attenuation);
+	else if(hitRecord.materialType==MAT_DIELECTRIC)
+		return DielectricScatter(dielectricMaterials[hitRecord.material], incident, hitRecord, scatter, attenuation);
+	else
+		return false;
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord hitRecord)
+bool WorldHit(Ray ray, float t_min, float t_max, inout HitRecord rec)
 {
-	vec3 oc = ray.origin - sphere.center;
-	
-	float a = dot(ray.direction, ray.direction);
-	float b = 2.0 * dot(oc, ray.direction);
-	float c = dot(oc, oc) - sphere.radius * sphere.radius;
-
-	float discriminant = b * b - 4 * a * c;
-	if(discriminant>0)
-	{
-		float temp = (-b - sqrt(discriminant)) / (2.0 * a);
-		if(temp < t_max && temp> t_min)
-		{
-			hitRecord.t = temp;
-			hitRecord.position = RayGetPointAt(ray, hitRecord.t);
-			hitRecord.normal = (hitRecord.position - sphere.center) / sphere.radius;
-			
-			hitRecord.materialType = sphere.materialType;
-			hitRecord.material = sphere.material;
-			return true;
-		}
-
-		temp = (-b + sqrt(discriminant)) / (2.0 * a);
-		if(temp < t_max && temp> t_min)
-		{
-			hitRecord.t = temp;
-			hitRecord.position = RayGetPointAt(ray, hitRecord.t);
-			hitRecord.normal = (hitRecord.position - sphere.center) / sphere.radius;
-
-			hitRecord.materialType = sphere.materialType;
-			hitRecord.material = sphere.material;
-			
-			return true;
-		}
-	}
-	
-	return false;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-World WorldConstructor()
-{
-	World world;
-
-	world.objectCount = 4;
-	world.objects[0] = SphereConstructor(vec3( 0.0,    0.0, -1.0), 0.25, MAT_LAMBERTIAN, 0);
-	world.objects[1] = SphereConstructor(vec3( 0.7,    0.0, -1.0), 0.25, MAT_METALLIC, 1);
-	world.objects[2] = SphereConstructor(vec3(-0.7,    0.0, -1.0), 0.25, MAT_DIELECTRIC, 2);
-	world.objects[3] = SphereConstructor(vec3( 0.0, -100.5, -1.0), 100.0, MAT_LAMBERTIAN, 3);
-
-	return world;
-}
-
-bool WorldHit(World world, Ray ray, float t_min, float t_max, inout HitRecord rec)
-{
+	HitRecord tempRec;
 	float cloestSoFar = t_max;
 	bool hitSomething = false;
-	HitRecord tempRec;
 
 	for(int i=0; i<world.objectCount; i++)
 	{
 		if(SphereHit(world.objects[i], ray, t_min, cloestSoFar, tempRec))
 		{
-			hitSomething = true;
-			cloestSoFar = tempRec.t;
-			
 			rec = tempRec;
+			cloestSoFar = tempRec.t;
+
+			hitSomething = true;
 		}
 	}
 
 	return hitSomething;
 }
 
-/////////////////////////////////////////////////////////////////////////////////
-World world;
-Camera camera;
-Lambertian lambertMaterials[4];
-Metallic metallicMaterials[4];
-Dielectric dielectricMaterials[4];
-
-void InitScene()
-{
-	world = WorldConstructor();
-	camera = CameraConstructor(vec3(-2.0, -1.0, -1.0), vec3(4.0, 0.0, 0.0), vec3(0.0, 2.0, 0.0), vec3(0.0, 0.0, 0.0));
-
-	lambertMaterials[0] = LambertianConstructor(vec3(0.7, 0.5, 0.5));
-	lambertMaterials[1] = LambertianConstructor(vec3(0.5, 0.7, 0.5));
-	lambertMaterials[2] = LambertianConstructor(vec3(0.5, 0.5, 0.7));
-	lambertMaterials[3] = LambertianConstructor(vec3(0.7, 0.7, 0.7));
-
-	metallicMaterials[0] = MetallicConstructor(vec3(0.7, 0.5, 0.5), 0.0);
-	metallicMaterials[1] = MetallicConstructor(vec3(0.5, 0.7, 0.5), 0.1);
-	metallicMaterials[2] = MetallicConstructor(vec3(0.5, 0.5, 0.7), 0.2);
-	metallicMaterials[3] = MetallicConstructor(vec3(0.7, 0.7, 0.7), 0.3);
-
-	dielectricMaterials[0] = DielectricConstructor(vec3(1.0, 1.0, 1.0), 0.0, 1.5);
-	dielectricMaterials[1] = DielectricConstructor(vec3(1.0, 1.0, 1.0), 0.1, 1.5);
-	dielectricMaterials[2] = DielectricConstructor(vec3(1.0, 1.0, 1.0), 0.2, 1.5);
-	dielectricMaterials[3] = DielectricConstructor(vec3(1.0, 1.0, 1.0), 0.3, 1.5);
-}
-
-bool MaterialScatter(in int materialType, in int material, in Ray incident, in HitRecord hitRecord, out Ray scatter, out vec3 attenuation)
-{
-	if(materialType==MAT_LAMBERTIAN)
-		return LambertianScatter(lambertMaterials[material], incident, hitRecord, scatter, attenuation);
-	else if(materialType==MAT_METALLIC)
-		return MetallicScatter(metallicMaterials[material], incident, hitRecord, scatter, attenuation);
-	else if(materialType==MAT_DIELECTRIC)
-		return DielectricScatter(dielectricMaterials[material], incident, hitRecord, scatter, attenuation);
-	else
-		return false;
-}
-
-vec3 GetBGColor(World world, Ray ray)
-{
-	//vec3 unit_direction = normalize(ray.direction);
-	//float t = 0.5 * (unit_direction.y + 1.0);
-	//return vec3(1.0, 1.0, 1.0) * (1.0 - t) + vec3(0.5, 0.7, 1.0) * t;
-
-	vec3 dir = normalize(ray.direction);
-	float theta = acos(dir.y) / PI;
-	float phi = (atan(dir.x, dir.z) / (PI) + 1.0) / 2.0;
-	return texture(envMap, vec2(phi, theta)).xyz;
-}
-
 /*
-vec3 WorldTrace(World world, Ray ray)
+vec3 WorldTrace(Ray ray)
 {
 	HitRecord hitRecord;
 	if(WorldHit(world, ray, 0.001, RAYCAST_MAX, hitRecord))
@@ -504,7 +469,21 @@ vec3 WorldTrace(World world, Ray ray)
 }
 */
 
-vec3 WorldTrace(World world, Ray ray, int depth)
+vec3 GetEnvironmentColor(World world, Ray ray)
+{
+	vec3 unit_direction = normalize(ray.direction);
+	float t = 0.5 * (unit_direction.y + 1.0);
+	return vec3(1.0, 1.0, 1.0) * (1.0 - t) + vec3(0.5, 0.7, 1.0) * t;
+
+	/*
+	vec3 dir = normalize(ray.direction);
+	float phi = acos(dir.y) / PI;
+	float theta = (atan(dir.x, dir.z) + (PI / 2.0)) / PI;
+	return texture(envMap, vec2(theta, phi)).xyz;
+	*/
+}
+
+vec3 WorldTrace(Ray ray, int depth)
 {
 	HitRecord hitRecord;
 
@@ -513,11 +492,15 @@ vec3 WorldTrace(World world, Ray ray, int depth)
 	while(depth>0)
 	{
 		depth--;
-		if(WorldHit(world, ray, 0.001, RAYCAST_MAX, hitRecord))
+		if(WorldHit(ray, 0.1, RAYCAST_MAX, hitRecord))
 		{
 			Ray scatterRay;
 			vec3 attenuation;
-			if(!MaterialScatter(hitRecord.materialType, hitRecord.material, ray, hitRecord, scatterRay, attenuation))
+
+			//hitRecord.materialType = MAT_LAMBERTIAN;
+			//hitRecord.material = 3;
+
+			if(!MaterialScatter(ray, hitRecord, scatterRay, attenuation))
 				break;
 			
 			frac *= attenuation;
@@ -525,7 +508,7 @@ vec3 WorldTrace(World world, Ray ray, int depth)
 		}
 		else
 		{
-			bgColor = GetBGColor(world, ray);
+			bgColor = GetEnvironmentColor(world, ray);
 			break;
 		}
 	}
@@ -545,18 +528,18 @@ vec3 InverseGammaCorrection(vec3 c)
 
 void main()
 {
-	InitScene();
-	
+	seed(screenCoord);
+
+	//InitMaterial();
+
 	vec3 col = vec3(0.0, 0.0, 0.0);
 	int ns = 100;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
-		col += WorldTrace(world, ray, 50);
+		col += WorldTrace(ray, 10);
 	}
 	col /= ns;
-
-	//col = GammaCorrection(col);
 
 	FragColor.xyz = col;
 	FragColor.w = 1.0;

@@ -586,6 +586,11 @@ void renderScene()
 	shaderProgram.SetUniform1i("envMap", 0);
 	shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 
+	shaderProgram.SetUniform3f("camera.lower_left_corner", -2.0, -1.0, -1.0);
+	shaderProgram.SetUniform3f("camera.horizontal", 4.0, 0.0, 0.0);
+	shaderProgram.SetUniform3f("camera.vertical", 0.0, 2.0, 0.0);
+	shaderProgram.SetUniform3f("camera.origin", 0.0, 0.0, 0.0);
+
 	vertexArrayObject.Bind();
 
 	envMap.Bind(0);

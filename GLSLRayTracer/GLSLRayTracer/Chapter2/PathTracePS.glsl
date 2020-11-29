@@ -54,10 +54,12 @@ vec3 WorldTrace(Ray ray)
 	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
 }
 
+uniform Camera camera;
+
 void main()
 {
-	Camera camera = CameraConstructor(vec3(-2.0, -1.0, -1.0), vec3(4.0, 0.0, 0.0), vec3(0.0, 2.0, 0.0), vec3(0.0, 0.0, 0.0));
-	Ray ray = RayConstructor(camera.origin, camera.lower_left_corner + screenCoord.x * camera.horizontal + screenCoord.y * camera.vertical);
+	Ray ray = RayConstructor(camera.origin, 
+	               camera.lower_left_corner + screenCoord.x * camera.horizontal + screenCoord.y * camera.vertical - camera.origin);
 
 	FragColor.xyz = WorldTrace(ray);
 	FragColor.w = 1.0;

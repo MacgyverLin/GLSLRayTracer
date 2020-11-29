@@ -1,13 +1,10 @@
 #version 330 core
-#define PI 3.14159265
-
 in vec2 screenCoord;
 
 uniform sampler2D envMap;
 uniform vec2 screenSize;
 
 out vec4 FragColor;
-
 
 //////////////////////////////////////////////////////////////////////////////
 uint m_u = uint(521288629);
@@ -36,6 +33,12 @@ float GetUniform()
 uint GetUint()
 {
 	return GetUintCore(m_u, m_v);
+}
+
+void seed(vec2 screenCoord)
+{
+	m_u = uint(mod(521288629.0 / 2.0 + screenCoord.x * screenCoord.y, 521288629.0));
+	m_v = uint(mod(362436069.0 / 2.0 + screenCoord.x * screenCoord.y * screenCoord.y, 362436069.0));
 }
 
 float rand()
@@ -89,14 +92,6 @@ struct World
 {
 	int objectCount;
 	Sphere objects[10];
-};
-
-struct Material
-{
-	vec3 albedo;
-	float metallic;
-	float roughness;
-	float transparent;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -200,18 +195,10 @@ bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-World WorldConstructor()
-{
-	World world;
+uniform Camera camera;
+uniform World world;
 
-	world.objectCount = 2;
-	world.objects[0] = SphereConstructor(vec3(0.0, 0.0, -1.0), 0.5);
-	world.objects[1] = SphereConstructor(vec3(0.0, -100.5, -1.0), 100.0);
-
-	return world;
-}
-
-bool WorldHit(World world, Ray ray, float t_min, float t_max, inout HitRecord rec)
+bool WorldHit(Ray ray, float t_min, float t_max, inout HitRecord rec)
 {
 	HitRecord tempRec;
 	float cloestSoFar = t_max;
@@ -231,23 +218,10 @@ bool WorldHit(World world, Ray ray, float t_min, float t_max, inout HitRecord re
 	return hitSomething;
 }
 
-vec3 random_in_unit_sphere()
-{
-	vec3 p;
-	
-	float theta = rand() * 2.0 * PI;
-	float phi   = rand() * PI;
-	p.y = cos(phi);
-	p.x = sin(phi) * cos(theta);
-	p.z = sin(phi) * sin(theta);
-
-	return p;
-}
-
-vec3 WorldTrace(World world, Ray ray)
+vec3 WorldTrace(Ray ray)
 {
 	HitRecord hitRecord;
-	if(WorldHit(world, ray, 0.0, 1000000.0, hitRecord))
+	if(WorldHit(ray, 0.0, 1000000.0, hitRecord))
 	{
 		return 0.5 * vec3(hitRecord.normal.x+1, hitRecord.normal.y+1, hitRecord.normal.z+1);
 	}
@@ -261,15 +235,14 @@ vec3 WorldTrace(World world, Ray ray)
 
 void main()
 {
-	World world = WorldConstructor();
-	Camera camera = CameraConstructor(vec3(-2.0, -1.0, -1.0), vec3(4.0, 0.0, 0.0), vec3(0.0, 2.0, 0.0), vec3(0.0, 0.0, 0.0));
-	
+	seed(screenCoord);
+
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = 1;
+	int ns = 10;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
-		col += WorldTrace(world, ray);
+		col += WorldTrace(ray);
 	}
 	col /= ns;
 
