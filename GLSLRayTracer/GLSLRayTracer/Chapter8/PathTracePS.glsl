@@ -392,13 +392,13 @@ bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord
 	vec3 oc = ray.origin - sphere.center;
 	
 	float a = dot(ray.direction, ray.direction);
-	float b = dot(oc, ray.direction);
+	float b = 2.0 * dot(oc, ray.direction);
 	float c = dot(oc, oc) - sphere.radius * sphere.radius;
 
-	float discriminant = b * b - a * c;
+	float discriminant = b * b - 4 * a * c;
 	if(discriminant>0)
 	{
-		float temp = (-b - sqrt(discriminant)) / a;
+		float temp = (-b - sqrt(discriminant)) / (2.0 * a);
 		if(temp < t_max && temp> t_min)
 		{
 			hitRecord.t = temp;
