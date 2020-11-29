@@ -453,6 +453,19 @@ bool WorldHit(Ray ray, float t_min, float t_max, inout HitRecord rec)
 	return hitSomething;
 }
 
+vec3 GetEnvironmentColor(World world, Ray ray)
+{
+	vec3 unit_direction = normalize(ray.direction);
+	float t = 0.5 * (unit_direction.y + 1.0);
+	return vec3(1.0, 1.0, 1.0) * (1.0 - t) + vec3(0.5, 0.7, 1.0) * t;
+	/*
+	vec3 dir = normalize(ray.direction);
+	float theta = acos(dir.y) / PI;
+	float phi = (atan(dir.z, dir.x) + (PI / 2.0)) / PI;
+	return texture(envMap, vec2(phi, theta)).xyz;
+	*/
+}
+
 /*
 vec3 WorldTrace(Ray ray)
 {
@@ -464,56 +477,36 @@ vec3 WorldTrace(Ray ray)
 	}
 	else
 	{
-		return GetBGColorColor(world, ray);
+		return GetEnvironmentColor(world, ray);
 	}
 }
 */
-
-vec3 GetEnvironmentColor(World world, Ray ray)
-{
-	vec3 unit_direction = normalize(ray.direction);
-	float t = 0.5 * (unit_direction.y + 1.0);
-	return vec3(1.0, 1.0, 1.0) * (1.0 - t) + vec3(0.5, 0.7, 1.0) * t;
-
-	/*
-	vec3 dir = normalize(ray.direction);
-	float phi = acos(dir.y) / PI;
-	float theta = (atan(dir.x, dir.z) + (PI / 2.0)) / PI;
-	return texture(envMap, vec2(theta, phi)).xyz;
-	*/
-}
 
 vec3 WorldTrace(Ray ray, int depth)
 {
 	HitRecord hitRecord;
 
-	vec3 frac = vec3(1.0, 1.0, 1.0);
-	vec3 bgColor = vec3(0.0, 0.0, 0.0);
+	vec3 current_attenuation = vec3(1.0, 1.0, 1.0);
 	while(depth>0)
 	{
 		depth--;
-		if(WorldHit(ray, 0.1, RAYCAST_MAX, hitRecord))
+		if(WorldHit(ray, 0.001, RAYCAST_MAX, hitRecord))
 		{
 			Ray scatterRay;
 			vec3 attenuation;
-
-			//hitRecord.materialType = MAT_LAMBERTIAN;
-			//hitRecord.material = 3;
-
 			if(!MaterialScatter(ray, hitRecord, scatterRay, attenuation))
 				break;
 			
-			frac *= attenuation;
+			current_attenuation *= attenuation;
 			ray = scatterRay;
 		}
 		else
 		{
-			bgColor = GetEnvironmentColor(world, ray);
-			break;
+			return current_attenuation * GetEnvironmentColor(world, ray);
 		}
 	}
 
-	return bgColor * frac;
+	return vec3(0.0, 0.0, 0.0);
 }
 
 vec3 GammaCorrection(vec3 c)
