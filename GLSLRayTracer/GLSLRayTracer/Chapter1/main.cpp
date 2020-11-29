@@ -506,7 +506,7 @@ void renderScene()
 
 	shaderProgram.Bind();
 	shaderProgram.SetUniform1i("envMap", 0);
-	shaderProgram.SetUniform2i("screenSize", SCR_WIDTH, SCR_HEIGHT);
+	shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 
 	vertexArrayObject.Bind();
 	envMap.Bind(0);
