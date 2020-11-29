@@ -3,8 +3,6 @@
 
 in vec2 screenCoord;
 
-uniform sampler2D diffuseMap;
-uniform sampler2D specularMap;
 uniform sampler2D envMap;
 uniform vec2 screenSize;
 
@@ -35,7 +33,7 @@ float GetUniform()
 	return GetUniformCore(m_u, m_v);
 }
 
-unsigned int GetUint()
+uint GetUint()
 {
 	return GetUintCore(m_u, m_v);
 }
@@ -267,7 +265,7 @@ void main()
 	Camera camera = CameraConstructor(vec3(-2.0, -1.0, -1.0), vec3(4.0, 0.0, 0.0), vec3(0.0, 2.0, 0.0), vec3(0.0, 0.0, 0.0));
 	
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = 100;
+	int ns = 1;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);

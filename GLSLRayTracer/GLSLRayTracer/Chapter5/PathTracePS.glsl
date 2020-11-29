@@ -1,8 +1,6 @@
 #version 330 core
 in vec2 screenCoord;
 
-uniform sampler2D diffuseMap;
-uniform sampler2D specularMap;
 uniform sampler2D envMap;
 uniform ivec2 screenSize;
 
@@ -183,15 +181,15 @@ void main()
 	World world = WorldConstructor();
 	Camera camera = CameraConstructor(vec3(-2.0, -1.0, -1.0), vec3(4.0, 0.0, 0.0), vec3(0.0, 2.0, 0.0), vec3(0.0, 0.0, 0.0));
 	
-	int sampleCount = 1000;
+	int ns = 100;
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	for(int s=0; s<sampleCount; s++)
+	for(int s=0; s<ns; s++)
 	{
 		Ray ray = RayConstructor(camera.origin, camera.lower_left_corner + screenCoord.x * camera.horizontal + screenCoord.y * camera.vertical);
 		col += WorldTrace(world, ray);
 	}
 
-	col /=sampleCount;
+	col /=ns;
 
 	FragColor.xyz = col;
 	FragColor.w = 1.0;

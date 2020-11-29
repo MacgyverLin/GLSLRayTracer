@@ -503,8 +503,6 @@ private:
 
 
 ShaderProgram shaderProgram;
-Texture2D diffuseMap;
-Texture2D specularMap;
 Texture2D envMap;
 VertexArrayObject vertexArrayObject;
 
@@ -533,16 +531,6 @@ bool createScene()
 
 	shaderProgram.Bind();
 
-	if (!diffuseMap.Create("../assets/diffuseMap.png"))
-	{
-		return false;
-	}
-
-	if (!specularMap.Create("../assets/specularMap.png"))
-	{
-		return false;
-	}
-
 	if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
 	{
 		return false;
@@ -557,15 +545,12 @@ void renderScene()
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	shaderProgram.Bind();
-	shaderProgram.SetUniform1i("diffuseMap", 0);
-	shaderProgram.SetUniform1i("specularMap", 1);
-	shaderProgram.SetUniform1i("envMap", 2);
+	shaderProgram.SetUniform1i("envMap", 0);
 	shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 
 	vertexArrayObject.Bind();
 
-	diffuseMap.Bind(0);
-	specularMap.Bind(1);
+	envMap.Bind(0);
 	envMap.Bind(2);
 
 	vertexArrayObject.Draw(GL_TRIANGLES, 6);
@@ -573,9 +558,7 @@ void renderScene()
 
 void destroyScene()
 {
-	diffuseMap.Destroy();
-
-	specularMap.Destroy();
+	envMap.Destroy();
 
 	vertexArrayObject.Destroy();
 

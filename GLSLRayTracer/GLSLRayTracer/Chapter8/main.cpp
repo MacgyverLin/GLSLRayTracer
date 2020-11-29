@@ -29,10 +29,10 @@ void processInput(GLFWwindow* window)
 	double ypos = 0;
 	glfwGetCursorPos(window, &xpos, &ypos);
 
-	float deltaX = xpos - lastXPos;
-	float deltaY = ypos - lastYPos;
-	lastXPos = xpos;
-	lastYPos = ypos;
+	float deltaX = float(xpos) - lastXPos;
+	float deltaY = float(ypos) - lastYPos;
+	lastXPos = float(xpos);
+	lastYPos = float(ypos);
 	theta += deltaX / SCR_WIDTH * 180.0f * 2.0f;
 	phi += deltaY / SCR_HEIGHT * 180.0f;
 
@@ -57,9 +57,9 @@ void processInput(GLFWwindow* window)
 		phi = -70;
 	}
 
-	float y = sin(phi * 3.14 / 180.0f);
-	float x = cos(phi * 3.14 / 180.0f) * cos(theta * 3.14 / 180.0f);
-	float z = cos(phi * 3.14 / 180.0f) * sin(theta * 3.14 / 180.0f);
+	float y = (float)sin(phi * 3.14 / 180.0f);
+	float x = (float)cos(phi * 3.14 / 180.0f) * (float)cos(theta * 3.14 / 180.0f);
+	float z = (float)cos(phi * 3.14 / 180.0f) * (float)sin(theta * 3.14 / 180.0f);
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(window, true);
@@ -70,15 +70,15 @@ void processInput(GLFWwindow* window)
 	cameraTarget[2] = cameraPos[2] + z;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
-		cameraPos[0] += (cameraTarget[0] - cameraPos[0]) * 0.016;
-		cameraPos[1] += (cameraTarget[1] - cameraPos[1]) * 0.016;
-		cameraPos[2] += (cameraTarget[2] - cameraPos[2]) * 0.016;
+		cameraPos[0] += (cameraTarget[0] - cameraPos[0]) * 0.016f;
+		cameraPos[1] += (cameraTarget[1] - cameraPos[1]) * 0.016f;
+		cameraPos[2] += (cameraTarget[2] - cameraPos[2]) * 0.016f;
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 	{
-		cameraPos[0] -= (cameraTarget[0] - cameraPos[0]) * 0.016;
-		cameraPos[1] -= (cameraTarget[1] - cameraPos[1]) * 0.016;
-		cameraPos[2] -= (cameraTarget[2] - cameraPos[2]) * 0.016;
+		cameraPos[0] -= (cameraTarget[0] - cameraPos[0]) * 0.016f;
+		cameraPos[1] -= (cameraTarget[1] - cameraPos[1]) * 0.016f;
+		cameraPos[2] -= (cameraTarget[2] - cameraPos[2]) * 0.016f;
 	}
 }
 
@@ -561,8 +561,6 @@ private:
 
 
 ShaderProgram shaderProgram;
-Texture2D diffuseMap;
-Texture2D specularMap;
 Texture2D envMap;
 VertexArrayObject vertexArrayObject;
 
@@ -591,16 +589,6 @@ bool createScene()
 
 	shaderProgram.Bind();
 
-	if (!diffuseMap.Create("../assets/diffuseMap.png"))
-	{
-		return false;
-	}
-
-	if (!specularMap.Create("../assets/specularMap.png"))
-	{
-		return false;
-	}
-
 	if (!envMap.Create("../assets/envmap6.jpg"))
 	{
 		return false;
@@ -615,9 +603,7 @@ void renderScene()
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	shaderProgram.Bind();
-	shaderProgram.SetUniform1i("diffuseMap", 0);
-	shaderProgram.SetUniform1i("specularMap", 1);
-	shaderProgram.SetUniform1i("envMap", 2);
+	shaderProgram.SetUniform1i("envMap", 0);
 	shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 
 	shaderProgram.SetUniform3f("cameraPos", cameraPos[0], cameraPos[1], cameraPos[2]);
@@ -626,8 +612,7 @@ void renderScene()
 
 	vertexArrayObject.Bind();
 
-	diffuseMap.Bind(0);
-	specularMap.Bind(1);
+	envMap.Bind(0);
 	envMap.Bind(2);
 
 	vertexArrayObject.Draw(GL_TRIANGLES, 6);
@@ -635,9 +620,7 @@ void renderScene()
 
 void destroyScene()
 {
-	diffuseMap.Destroy();
-
-	specularMap.Destroy();
+	envMap.Destroy();
 
 	vertexArrayObject.Destroy();
 
