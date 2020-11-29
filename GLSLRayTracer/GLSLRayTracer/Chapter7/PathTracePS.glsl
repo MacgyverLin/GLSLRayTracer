@@ -530,8 +530,6 @@ void main()
 {
 	seed(screenCoord);
 
-	//InitMaterial();
-
 	vec3 col = vec3(0.0, 0.0, 0.0);
 	int ns = 100;
 	for(int i=0; i<ns; i++)
