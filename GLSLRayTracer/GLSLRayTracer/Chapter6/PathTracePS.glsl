@@ -129,12 +129,12 @@ Camera CameraConstructor(vec3 lower_left_corner, vec3 horizontal, vec3 vertical,
 	return camera;
 }
 
-Ray CameraGetRay(Camera camera, vec2 offset)
+Ray CameraGetRay(Camera camera, vec2 uv)
 {
 	Ray ray = RayConstructor(camera.origin, 
 		camera.lower_left_corner + 
-		offset.x * camera.horizontal + 
-		offset.y * camera.vertical);
+		uv.x * camera.horizontal + 
+		uv.y * camera.vertical);
 
 	return ray;
 }
@@ -229,11 +229,14 @@ void main()
 {
 	seed(screenCoord);
 
+	float u = screenCoord.x;
+	float v = screenCoord.y;
+	
 	vec3 col = vec3(0.0, 0.0, 0.0);
 	int ns = 100;
 	for(int i=0; i<ns; i++)
 	{
-		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
+		Ray ray = CameraGetRay(camera, vec2(u, v) + rand2() / screenSize);
 		col += WorldTrace(ray);
 	}
 	col /= ns;

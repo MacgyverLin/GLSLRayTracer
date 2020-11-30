@@ -114,8 +114,14 @@ uniform Camera camera;
 
 void main()
 {
-	Ray ray = RayConstructor(camera.origin, 
-	               camera.lower_left_corner + screenCoord.x * camera.horizontal + screenCoord.y * camera.vertical - camera.origin);
+	float u = screenCoord.x;
+	float v = screenCoord.y;
+	
+	Ray ray;
+	ray.origin = camera.origin;
+	ray.direction = camera.lower_left_corner + 
+						u * camera.horizontal + 
+						v * camera.vertical - camera.origin;
 
 	FragColor.xyz = WorldTrace(ray);
 	FragColor.w = 1.0;

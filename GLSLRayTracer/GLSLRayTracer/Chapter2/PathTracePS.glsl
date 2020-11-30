@@ -20,34 +20,6 @@ struct Camera
 	vec3 origin;
 }; 
 
-////////////////////////////////////////////////////////////////////////////////////
-Ray RayConstructor(vec3 origin, vec3 direction)
-{
-	Ray ray;
-	ray.origin = origin;
-	ray.direction = direction;
-
-	return ray;
-}
-
-vec3 RayGetPointAt(Ray ray, float t)
-{
-	return ray.origin + t * ray.direction;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-Camera CameraConstructor(vec3 lower_left_corner, vec3 horizontal, vec3 vertical, vec3 origin)
-{
-	Camera camera;
-
-	camera.lower_left_corner = lower_left_corner;
-	camera.horizontal = horizontal;
-	camera.vertical = vertical;
-	camera.origin = origin;
-
-	return camera;
-}
-
 vec3 WorldTrace(Ray ray)
 {
 	vec3 unit_direction = normalize(ray.direction);
@@ -59,8 +31,14 @@ uniform Camera camera;
 
 void main()
 {
-	Ray ray = RayConstructor(camera.origin, 
-	               camera.lower_left_corner + screenCoord.x * camera.horizontal + screenCoord.y * camera.vertical - camera.origin);
+	float u = screenCoord.x;
+	float v = screenCoord.y;
+	
+	Ray ray;
+	ray.origin = camera.origin;
+	ray.direction = camera.lower_left_corner + 
+						u * camera.horizontal + 
+						v * camera.vertical - camera.origin;
 
 	FragColor.xyz = WorldTrace(ray);
 	FragColor.w = 1.0;

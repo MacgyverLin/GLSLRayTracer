@@ -71,72 +71,56 @@ public:
 
 	Vector3& operator += (const Vector3& v)
 	{
-		m[0] += v.m[0];
-		m[1] += v.m[1];
-		m[2] += v.m[2];
+		m[0] += v.m[0]; m[1] += v.m[1];	m[2] += v.m[2];
 
 		return *this;
 	}
 
 	Vector3& operator -= (const Vector3& v)
 	{
-		m[0] -= v.m[0];
-		m[1] -= v.m[1];
-		m[2] -= v.m[2];
+		m[0] -= v.m[0]; m[1] -= v.m[1]; m[2] -= v.m[2];
 
 		return *this;
 	}
 
 	Vector3& operator *= (const Vector3& v)
 	{
-		m[0] *= v.m[0];
-		m[1] *= v.m[1];
-		m[2] *= v.m[2];
+		m[0] *= v.m[0]; m[1] *= v.m[1]; m[2] *= v.m[2];
 
 		return *this;
 	}
 
 	Vector3& operator /= (const Vector3& v)
 	{
-		m[0] /= v.m[0];
-		m[1] /= v.m[1];
-		m[2] /= v.m[2];
+		m[0] /= v.m[0]; m[1] /= v.m[1]; m[2] /= v.m[2];
 
 		return *this;
 	}
 
 	Vector3& operator += (const T& v)
 	{
-		m[0] += v;
-		m[1] += v;
-		m[2] += v;
+		m[0] += v; m[1] += v; m[2] += v;
 
 		return *this;
 	}
 
 	Vector3& operator -= (const T& v)
 	{
-		m[0] -= v;
-		m[1] -= v;
-		m[2] -= v;
+		m[0] -= v; m[1] -= v; m[2] -= v;
 
 		return *this;
 	}
 
 	Vector3& operator *= (const T& v)
 	{
-		m[0] *= v;
-		m[1] *= v;
-		m[2] *= v;
+		m[0] *= v; m[1] *= v; m[2] *= v;
 
 		return *this;
 	}
 
 	Vector3& operator /= (const T& v)
 	{
-		m[0] /= v;
-		m[1] /= v;
-		m[2] /= v;
+		m[0] /= v; m[1] /= v; m[2] /= v;
 
 		return *this;
 	}
