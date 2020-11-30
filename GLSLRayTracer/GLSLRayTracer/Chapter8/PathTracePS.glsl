@@ -93,12 +93,12 @@ struct Ray {
 
 struct Camera 
 {
-    vec3 lower_left_corner;
-    vec3 horizontal;
-	vec3 vertical;
 	vec3 origin;
+	vec3 target;
+	vec3 up;
+	float vfov;
+	float aspect;
 }; 
-
 
 struct Sphere 
 {
@@ -155,26 +155,20 @@ float RayHitSphere(Ray ray, Sphere sphere)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-Camera CameraConstructor(vec3 lower_left_corner, vec3 horizontal, vec3 vertical, vec3 origin)
-{
-	Camera camera;
-
-	camera.lower_left_corner = lower_left_corner;
-	camera.horizontal = horizontal;
-	camera.vertical = vertical;
-	camera.origin = origin;
-
-	return camera;
-}
-
 Ray CameraGetRay(Camera camera, vec2 offset)
 {
-	Ray ray = RayConstructor(camera.origin, 
-		camera.lower_left_corner + 
-		offset.x * camera.horizontal + 
-		offset.y * camera.vertical);
+	float halfHeight = tan(camera.vfov * PI / 180.0 / 2.0);
+	float halfWidth = camera.aspect * halfHeight;
 
-	return ray;
+	vec3 w = normalize(camera.origin - camera.target);
+	vec3 u = normalize(cross(camera.up, w));
+	vec3 v = cross(w, u);
+
+	vec3 lower_left_corner = camera.origin - halfWidth * u - halfHeight * v - w;
+	vec3 horizontal = 2.0 * halfWidth * u;
+	vec3 vertical = 2.0 * halfHeight * v;
+
+	return RayConstructor(camera.origin, lower_left_corner + offset.x * horizontal + offset.y * vertical - camera.origin);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
