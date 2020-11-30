@@ -55,14 +55,15 @@ vec4 rand4()
 	return vec4(rand(), rand(), rand(), rand());
 }
 
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 vec3 random_in_unit_sphere()
 {
 	vec3 p;
+	
 	/*
 	do
 	{
-		p = 2.0 * vec3(rand(), rand(), rand()) - vec3(1.0, 1.0, 1.0);
+		p = 2.0 * rand3() - vec3(1, 1, 1);
 	}while(dot(p, p)>=1.0);
 	return p;
 	*/
@@ -72,11 +73,18 @@ vec3 random_in_unit_sphere()
 	p.y = cos(theta);
 	p.x = sin(theta) * cos(phi);
 	p.z = sin(theta) * sin(phi);
+	
+	return p;
+}
 
-	p.x = 2.0 *rand() - 1.0;
-	p.y = 2.0 *rand() - 1.0;
-	p.z = 2.0 *rand() - 1.0;
-	p = normalize(p);
+vec3 random_in_unit_disk()
+{
+	vec3 p;
+
+	float theta		= rand() * 2.0 * PI;
+	p.x = cos(theta);
+	p.y = sin(theta);
+	p.z = 0;
 	
 	return p;
 }
@@ -89,12 +97,15 @@ struct Ray {
 
 struct Camera 
 {
-    vec3 lower_left_corner;
-    vec3 horizontal;
-	vec3 vertical;
 	vec3 origin;
-}; 
+	vec3 target;
+	vec3 up;
+	float vfov;
+	float aspect;
 
+	float aperture;
+	float focalDistance;
+}; 
 
 struct Sphere 
 {
@@ -151,25 +162,23 @@ float RayHitSphere(Ray ray, Sphere sphere)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-Camera CameraConstructor(vec3 lower_left_corner, vec3 horizontal, vec3 vertical, vec3 origin)
-{
-	Camera camera;
-
-	camera.lower_left_corner = lower_left_corner;
-	camera.horizontal = horizontal;
-	camera.vertical = vertical;
-	camera.origin = origin;
-
-	return camera;
-}
-
 Ray CameraGetRay(Camera camera, vec2 offset)
 {
-	Ray ray = RayConstructor(camera.origin, 
-		camera.lower_left_corner + 
-		offset.x * camera.horizontal + 
-		offset.y * camera.vertical);
+	float halfHeight = tan(camera.vfov * PI / 180.0 / 2.0);
+	float halfWidth = camera.aspect * halfHeight;
 
+	vec3 w = normalize(camera.origin - camera.target);
+	vec3 u = normalize(cross(camera.up, w));
+	vec3 v = cross(w, u);
+
+	vec3 lower_left_corner = camera.origin - halfWidth * camera.focalDistance * u - halfHeight * camera.focalDistance * v - camera.focalDistance * w;
+	vec3 horizontal = 2.0 * halfWidth * camera.focalDistance * u;
+	vec3 vertical = 2.0 * halfHeight * camera.focalDistance * v;
+
+	Ray ray;
+	vec3 lenoffset = random_in_unit_disk() * (camera.aperture / 2.0);
+	ray.origin = camera.origin + lenoffset;
+	ray.direction = lower_left_corner + offset.x * horizontal + offset.y * vertical - (camera.origin + lenoffset);
 	return ray;
 }
 
@@ -185,7 +194,7 @@ Sphere SphereConstructor(vec3 center, float radius)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, out HitRecord hitRecord)
+bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord hitRecord)
 {
 	vec3 oc = ray.origin - sphere.center;
 	
@@ -202,7 +211,7 @@ bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, out HitRecord h
 			hitRecord.t = temp;
 			hitRecord.position = RayGetPointAt(ray, hitRecord.t);
 			hitRecord.normal = (hitRecord.position - sphere.center) / sphere.radius;
-
+			
 			hitRecord.materialType = sphere.materialType;
 			hitRecord.material = sphere.material;
 
@@ -455,10 +464,10 @@ vec3 GetEnvironmentColor(World world, Ray ray)
 	float t = 0.5 * (unit_direction.y + 1.0);
 	return vec3(1.0, 1.0, 1.0) * (1.0 - t) + vec3(0.5, 0.7, 1.0) * t;
 	
-	vec3 dir = normalize(ray.direction);
-	float theta = acos(dir.y) / PI;
-	float phi = (atan(dir.z, dir.x) + (PI / 2.0)) / PI;
-	return texture(envMap, vec2(phi, theta)).xyz;
+	//vec3 dir = normalize(ray.direction);
+	//float theta = acos(dir.y) / PI;
+	//float phi = (atan(dir.z, dir.x) + (PI / 2.0)) / PI;
+	//return texture(envMap, vec2(phi, theta)).xyz;
 }
 
 /*
@@ -482,33 +491,22 @@ vec3 WorldTrace(Ray ray, int depth)
 	HitRecord hitRecord;
 
 	vec3 current_attenuation = vec3(1.0, 1.0, 1.0);
-	Ray current_ray = ray;
-	
 	while(depth>0)
 	{
 		depth--;
-		if(WorldHit(current_ray, 0.001, RAYCAST_MAX, hitRecord))
+		if(WorldHit(ray, 0.001, RAYCAST_MAX, hitRecord))
 		{
+			Ray scatterRay;
 			vec3 attenuation;
-			Ray scatter_ray;
-
-			//hitRecord.materialType = 0;
-			//hitRecord.material = 0;
-			if(!MaterialScatter(current_ray, hitRecord, scatter_ray, attenuation))
+			if(!MaterialScatter(ray, hitRecord, scatterRay, attenuation))
 				break;
 			
-			//if(!LambertianScatter(lambertMaterials[0], current_ray, hitRecord, scatter_ray, attenuation))
-				//break;
-			//attenuation = vec3(0.5);
-			//scatter_ray.origin = hitRecord.position;
-			//scatter_ray.direction = hitRecord.normal + random_in_unit_sphere() * 0.9;
-
 			current_attenuation *= attenuation;
-			current_ray = scatter_ray;
+			ray = scatterRay;
 		}
 		else
 		{
-			return current_attenuation * GetEnvironmentColor(world, current_ray);
+			return current_attenuation * GetEnvironmentColor(world, ray);
 		}
 	}
 
@@ -538,7 +536,6 @@ void main()
 	}
 	col /= ns;
 
-	//FragColor.xyz = GammaCorrection(col);
 	FragColor.xyz = col;
 	FragColor.w = 1.0;
 }

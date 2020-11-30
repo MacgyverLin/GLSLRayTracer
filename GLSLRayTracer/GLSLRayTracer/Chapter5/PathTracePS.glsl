@@ -1,8 +1,9 @@
 #version 330 core
 in vec2 screenCoord;
 
-uniform sampler2D envMap;
 uniform vec2 screenSize;
+uniform sampler2D randomMap;
+uniform sampler2D envMap;
 
 out vec4 FragColor;
 
@@ -115,7 +116,7 @@ bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord
 			return true;
 		}
 
-		temp = (-b + sqrt(discriminant)) / (a);
+		temp = (-b + sqrt(discriminant)) / (2.0 * a);
 		if(temp < t_max && temp> t_min)
 		{
 			hitRecord.t = temp;

@@ -129,7 +129,7 @@ private:
 		lastXPos = xpos;
 		lastYPos = ypos;
 		instance->theta += deltaX / instance->width * 180.0f * 2.0f;
-		instance->phi += deltaY / instance->height * 180.0f;
+		instance->phi -= deltaY / instance->height * 180.0f;
 		instance->theta = fmod(instance->theta, 180.0f * 2.0f);
 
 		if (instance->phi > 70)

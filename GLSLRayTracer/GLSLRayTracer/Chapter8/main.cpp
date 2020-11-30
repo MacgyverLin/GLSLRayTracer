@@ -52,6 +52,11 @@ public:
 			return false;
 		}
 
+		if (!randomMap.Create())
+		{
+			return false;
+		}
+
 		if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
 		{
 			return false;
@@ -94,8 +99,9 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		shaderProgram.Bind();
-		shaderProgram.SetUniform1i("envMap", 0);
 		shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		shaderProgram.SetUniform1i("randomMap", 0);
+		shaderProgram.SetUniform1i("envMap", 1);
 
 		shaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);
 		shaderProgram.SetUniform3f("camera.target", cameraTarget[0], cameraTarget[1], cameraTarget[2]);
@@ -150,7 +156,8 @@ public:
 
 		vertexArrayObject.Bind();
 
-		envMap.Bind(0);
+		randomMap.Bind(0);
+		envMap.Bind(1);
 
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
@@ -159,6 +166,8 @@ public:
 
 	void OnDestroy() override
 	{
+		randomMap.Destroy();
+
 		envMap.Destroy();
 
 		shaderProgram.Destroy();
@@ -167,6 +176,7 @@ public:
 	}
 private:
 	ShaderProgram shaderProgram;
+	RandomTexture2D randomMap;
 	Texture2D envMap;
 	VertexArrayObject vertexArrayObject;
 

@@ -1,49 +1,41 @@
 #version 330 core
 in vec2 screenCoord;
 
-uniform sampler2D envMap;
 uniform vec2 screenSize;
+uniform sampler2D randomMap;
+uniform sampler2D envMap;
 
 out vec4 FragColor;
 
 //////////////////////////////////////////////////////////////////////////////
-uint m_u = uint(521288629);
-uint m_v = uint(362436069);
-
-uint GetUintCore(inout uint u, inout uint v)
+float randIdx = 0;
+void seedcore2(vec2 screenCoord)
 {
-	v = uint(uint(36969) * (v & uint(65535)) + (v >> 16));
-	u = uint(uint(18000) * (u & uint(65535)) + (u >> 16));
-	return (v << 16) + u;
+	float x = (screenCoord.x * screenSize.x);
+	float y = (screenCoord.y * screenSize.y);
+	
+	randIdx = y * screenSize.x + x;
 }
 
-float GetUniformCore(inout uint u, inout uint v)
-{
-	// 0 <= u <= 2^32
-	uint z = GetUintCore(u, v);
-	// The magic number is 1/(2^32 + 1) and so result is positive and less than 1.
-	return float(z) / uint(4294967295);
-}
+#define RAND_TEX_SIZE 1048
 
-float GetUniform()
+float randcore2()
 {
-	return GetUniformCore(m_u, m_v);
-}
+	randIdx += 1 * RAND_TEX_SIZE;
+	float u = mod(randIdx, RAND_TEX_SIZE) / RAND_TEX_SIZE;
+	float v = floor(randIdx / RAND_TEX_SIZE) / RAND_TEX_SIZE;
 
-uint GetUint()
-{
-	return GetUintCore(m_u, m_v);
+	return texture(randomMap, vec2(u, v)).x;
 }
 
 void seed(vec2 screenCoord)
 {
-	m_u = uint(mod(521288629.0 / 2.0 + screenCoord.x * screenCoord.y, 521288629.0));
-	m_v = uint(mod(362436069.0 / 2.0 + screenCoord.x * screenCoord.y * screenCoord.y, 362436069.0));
+	seedcore2(screenCoord);
 }
 
 float rand()
 {
-	return GetUniform();
+	return randcore2();
 }
 
 vec2 rand2()
@@ -168,7 +160,7 @@ bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord
 	float c = dot(oc, oc) - sphere.radius * sphere.radius;
 
 	float discriminant = b * b - 4 * a * c;
-	if(discriminant>0)
+	if(discriminant > 0)
 	{
 		float temp = (-b - sqrt(discriminant)) / (2.0 * a);
 		if(temp < t_max && temp> t_min)
@@ -180,7 +172,7 @@ bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord
 			return true;
 		}
 
-		temp = (-b + sqrt(discriminant)) / (a);
+		temp = (-b + sqrt(discriminant)) / (2.0 * a);
 		if(temp < t_max && temp> t_min)
 		{
 			hitRecord.t = temp;
@@ -238,7 +230,7 @@ void main()
 	seed(screenCoord);
 
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = 10;
+	int ns = 100;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);

@@ -1,8 +1,9 @@
 #version 330 core
 in vec2 screenCoord;
 
-uniform sampler2D envMap;
 uniform vec2 screenSize;
+uniform sampler2D randomMap;
+uniform sampler2D envMap;
 
 out vec4 FragColor;
 

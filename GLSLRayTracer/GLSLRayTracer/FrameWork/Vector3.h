@@ -193,7 +193,7 @@ public:
 
 	float Length() const
 	{
-		return sqrt(Length());
+		return sqrt(SqrLength());
 	}
 
 	Vector3 Cross(const Vector3& v) const

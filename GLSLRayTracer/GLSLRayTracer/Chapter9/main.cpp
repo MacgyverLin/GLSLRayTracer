@@ -14,19 +14,23 @@
 #define MAT_DIELECTRIC 2
 #define MAT_PBR 3
 
-class Chapter7 : public FrameWork
+class Chapter9 : public FrameWork
 {
 public:
-	Chapter7()
+	Chapter9()
 	{
 	}
 
-	virtual ~Chapter7()
+	virtual ~Chapter9()
 	{
 	}
 
 	virtual bool OnCreate() override
 	{
+		cameraPos = vec3(0.0f, 0.0f, 0.0f);
+		cameraTarget = vec3(0.0f, 0.0f, -1.0f);
+		cameraUp = vec3(0.0f, 1.0f, 0.0f);
+
 		float vertices[] = {
 			 1.0f,  1.0f, 0.0f,  // top right
 			 1.0f, -1.0f, 0.0f,  // bottom right
@@ -48,7 +52,7 @@ public:
 			return false;
 		}
 
-		if (!randomMap.Create())
+		if(!randomMap.Create())
 		{
 			return false;
 		}
@@ -63,6 +67,34 @@ public:
 
 	virtual bool OnUpdate() override
 	{
+		float theta;
+		float phi;
+		GetTheta(theta, phi);
+
+		float y = sin(phi * 3.14 / 180.0f);
+		float x = cos(phi * 3.14 / 180.0f) * cos(theta * 3.14 / 180.0f);
+		float z = cos(phi * 3.14 / 180.0f) * sin(theta * 3.14 / 180.0f);
+
+		cameraTarget[0] = cameraPos[0] + x;
+		cameraTarget[1] = cameraPos[1] + y;
+		cameraTarget[2] = cameraPos[2] + z;
+		if (IsKeyPressed('W'))
+		{
+			cameraPos += (cameraTarget - cameraPos) * 0.016;
+		}
+		if (IsKeyPressed('S'))
+		{
+			cameraPos -= (cameraTarget - cameraPos) * 0.016;
+		}
+		if (IsKeyPressed('D'))
+		{
+			cameraPos += (cameraTarget - cameraPos).Cross(vec3(0, 1, 0)) * 0.016;
+		}
+		if (IsKeyPressed('A'))
+		{
+			cameraPos -= (cameraTarget - cameraPos).Cross(vec3(0, 1, 0)) * 0.016;
+		}
+
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -70,36 +102,42 @@ public:
 		shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		shaderProgram.SetUniform1i("randomMap", 0);
 		shaderProgram.SetUniform1i("envMap", 1);
+		
 
-		shaderProgram.SetUniform3f("camera.lower_left_corner", -2.0, -1.0, -1.0);
-		shaderProgram.SetUniform3f("camera.horizontal", 4.0, 0.0, 0.0);
-		shaderProgram.SetUniform3f("camera.vertical", 0.0, 2.0, 0.0);
-		shaderProgram.SetUniform3f("camera.origin", 0.0, 0.0, 0.0);
+		//cameraPos = vec3(3, 3, 2);
+		//cameraTarget = vec3(0, 0, -1);
+		shaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);
+		shaderProgram.SetUniform3f("camera.target", cameraTarget[0], cameraTarget[1], cameraTarget[2]);
+		shaderProgram.SetUniform3f("camera.up", 0, 1, 0);
+		shaderProgram.SetUniform1f("camera.vfov", 90.0f);
+		shaderProgram.SetUniform1f("camera.aspect", float(SCR_WIDTH) / SCR_HEIGHT);
+		shaderProgram.SetUniform1f("camera.aperture", 0.2f);
+		shaderProgram.SetUniform1f("camera.focalDistance", 3.0);
 
 		shaderProgram.SetUniform1i("world.objectCount", 4);
 		shaderProgram.SetUniform3f("world.objects[0].center", 0.0, 0.0, -1.0);
 		shaderProgram.SetUniform1f("world.objects[0].radius", 0.5);
 		shaderProgram.SetUniform1i("world.objects[0].materialType", MAT_LAMBERTIAN);
 		shaderProgram.SetUniform1i("world.objects[0].material", 0);
-		shaderProgram.SetUniform3f("world.objects[1].center", 0.0, -100.5, -1.0);
-		shaderProgram.SetUniform1f("world.objects[1].radius", 100.0);
-		shaderProgram.SetUniform1i("world.objects[1].materialType", MAT_LAMBERTIAN);
-		shaderProgram.SetUniform1i("world.objects[1].material", 1);
-		shaderProgram.SetUniform3f("world.objects[2].center", 1.0, 0.0, -1.0);
+		shaderProgram.SetUniform3f("world.objects[1].center", 1.0, 0.0, -1.0);
+		shaderProgram.SetUniform1f("world.objects[1].radius", 0.5);
+		shaderProgram.SetUniform1i("world.objects[1].materialType", MAT_METALLIC);
+		shaderProgram.SetUniform1i("world.objects[1].material", 0);
+		shaderProgram.SetUniform3f("world.objects[2].center", -1.0, 0.0, -1.0);
 		shaderProgram.SetUniform1f("world.objects[2].radius", 0.5);
-		shaderProgram.SetUniform1i("world.objects[2].materialType", MAT_METALLIC);
+		shaderProgram.SetUniform1i("world.objects[2].materialType", MAT_DIELECTRIC);
 		shaderProgram.SetUniform1i("world.objects[2].material", 0);
-		shaderProgram.SetUniform3f("world.objects[3].center", -1.0, 0.0, -1.0);
-		shaderProgram.SetUniform1f("world.objects[3].radius", 0.5);
-		shaderProgram.SetUniform1i("world.objects[3].materialType", MAT_DIELECTRIC);
-		shaderProgram.SetUniform1i("world.objects[3].material", 0);
+		shaderProgram.SetUniform3f("world.objects[3].center", 0.0, -100.5, -1.0);
+		shaderProgram.SetUniform1f("world.objects[3].radius", 100.0);
+		shaderProgram.SetUniform1i("world.objects[3].materialType", MAT_LAMBERTIAN);
+		shaderProgram.SetUniform1i("world.objects[3].material", 1);
 
 		shaderProgram.SetUniform3f("lambertMaterials[0].albedo", 0.1, 0.2, 0.5);
 		shaderProgram.SetUniform3f("lambertMaterials[1].albedo", 0.8, 0.8, 0.0);
 		shaderProgram.SetUniform3f("lambertMaterials[2].albedo", 0.0, 1.0, 0.0);
 		shaderProgram.SetUniform3f("lambertMaterials[3].albedo", 0.0, 0.0, 1.0);
 
-		shaderProgram.SetUniform3f("metallicMaterials[0].albedo", 0.8, 0.6, 0.2);
+		shaderProgram.SetUniform3f("metallicMaterials[0].albedo", 0.8, 0.6, 0.0);
 		shaderProgram.SetUniform1f("metallicMaterials[0].roughness", 0.0);
 		shaderProgram.SetUniform3f("metallicMaterials[1].albedo", 0.8, 0.6, 0.0);
 		shaderProgram.SetUniform1f("metallicMaterials[1].roughness", 0.0);
@@ -146,17 +184,22 @@ private:
 	RandomTexture2D randomMap;
 	Texture2D envMap;
 	VertexArrayObject vertexArrayObject;
+
+	vec3 cameraPos;
+	vec3 cameraTarget;
+	vec3 cameraUp;
 };
 
 int main()
 {
-	Chapter7 chapter7;
-	if (!chapter7.Create(SCR_WIDTH, SCR_HEIGHT))
+	Chapter9 chapter9;
+
+	if (!chapter9.Create(SCR_WIDTH, SCR_HEIGHT))
 		return -1;
 
-	chapter7.Start();
+	chapter9.Start();
 
-	chapter7.Destroy();
+	chapter9.Destroy();
 
 	return 0;
 }
