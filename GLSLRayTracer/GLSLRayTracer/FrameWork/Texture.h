@@ -189,7 +189,7 @@ public:
 
 	bool Create(int seed = 0)
 	{
-#define RAND_TEX_SIZE 1048
+		#define RAND_TEX_SIZE 1024
 		std::vector<float> data;
 		data.resize(RAND_TEX_SIZE * RAND_TEX_SIZE);
 

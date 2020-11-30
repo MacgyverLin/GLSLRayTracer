@@ -521,6 +521,6 @@ void main()
 	}
 	col /= ns;
 
-	FragColor.xyz = col;
+	FragColor.xyz = GammaCorrection(col);
 	FragColor.w = 1.0;
 }
