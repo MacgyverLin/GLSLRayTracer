@@ -458,13 +458,13 @@ vec3 GetEnvironmentColor(World world, Ray ray)
 }
 
 /*
-vec3 WorldTrace(Ray ray)
+vec3 PathTrace(Ray ray)
 {
 	HitRecord hitRecord;
 	if(WorldHit(world, ray, 0.001, RAYCAST_MAX, hitRecord))
 	{
 		ray = RayConstructor(hitRecord.position, hitRecord.normal + random_in_unit_sphere());
-		WorldTrace(world, ray);
+		PathTrace(world, ray);
 	}
 	else
 	{
@@ -473,7 +473,7 @@ vec3 WorldTrace(Ray ray)
 }
 */
 
-vec3 WorldTrace(Ray ray, int depth)
+vec3 PathTrace(Ray ray, int depth)
 {
 	HitRecord hitRecord;
 
@@ -519,7 +519,7 @@ void main()
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
-		col += WorldTrace(ray, 10);
+		col += PathTrace(ray, 10);
 	}
 	col /= ns;
 

@@ -473,23 +473,7 @@ vec3 GetEnvironmentColor(World world, Ray ray)
 	return texture(envMap, dir).xyz;
 }
 
-/*
-vec3 WorldTrace(Ray ray)
-{
-	HitRecord hitRecord;
-	if(WorldHit(world, ray, 0.001, RAYCAST_MAX, hitRecord))
-	{
-		ray = RayConstructor(hitRecord.position, hitRecord.normal + random_in_unit_sphere());
-		WorldTrace(world, ray);
-	}
-	else
-	{
-		return GetEnvironmentColor(world, ray);
-	}
-}
-*/
-
-vec3 WorldTrace(Ray ray, int depth)
+vec3 PathTrace(Ray ray, int depth)
 {
 	HitRecord hitRecord;
 
@@ -531,14 +515,15 @@ void main()
 	seed(screenCoord);
 
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = 100;
+	int ns = 10;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
-		col += WorldTrace(ray, 10);
+		col += PathTrace(ray, 10);
 	}
 	col /= ns;
 
-	FragColor.xyz = GammaCorrection(col);
+	FragColor.xyz = col;
+	//FragColor.xyz = GammaCorrection(col);
 	FragColor.w = 1.0;
 }

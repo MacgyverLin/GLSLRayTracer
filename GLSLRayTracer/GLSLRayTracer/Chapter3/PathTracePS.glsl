@@ -94,7 +94,7 @@ bool SphereHit(Sphere sphere, Ray ray)
 	return discriminant > 0.0;
 }
 
-vec3 WorldTrace(Ray ray)
+vec3 PathTrace(Ray ray)
 {
 	Sphere sphere = SphereConstructor(vec3(0.0, 0.0, -1.0), 0.5);
 
@@ -123,6 +123,6 @@ void main()
 						u * camera.horizontal + 
 						v * camera.vertical - camera.origin;
 
-	FragColor.xyz = WorldTrace(ray);
+	FragColor.xyz = PathTrace(ray);
 	FragColor.w = 1.0;
 }

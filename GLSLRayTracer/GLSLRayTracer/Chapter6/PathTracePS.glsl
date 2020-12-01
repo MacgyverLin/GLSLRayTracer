@@ -210,7 +210,7 @@ bool WorldHit(Ray ray, float t_min, float t_max, inout HitRecord rec)
 	return hitSomething;
 }
 
-vec3 WorldTrace(Ray ray)
+vec3 PathTrace(Ray ray)
 {
 	HitRecord hitRecord;
 	if(WorldHit(ray, 0.0, 1000000.0, hitRecord))
@@ -237,7 +237,7 @@ void main()
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, vec2(u, v) + rand2() / screenSize);
-		col += WorldTrace(ray);
+		col += PathTrace(ray);
 	}
 	col /= ns;
 

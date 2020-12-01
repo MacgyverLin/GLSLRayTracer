@@ -350,7 +350,7 @@ public:
 		shaderProgram.SetUniform3f("camera.up", 0, 1, 0);
 		shaderProgram.SetUniform1f("camera.vfov", 90.0f);
 		shaderProgram.SetUniform1f("camera.aspect", float(SCR_WIDTH) / SCR_HEIGHT);
-		shaderProgram.SetUniform1f("camera.aperture", 0.05f);
+		shaderProgram.SetUniform1f("camera.aperture", 0.00f);
 		shaderProgram.SetUniform1f("camera.focalDistance", 3.0);
 
 		shaderProgram.SetUniform1i("world.objectCount", 4);

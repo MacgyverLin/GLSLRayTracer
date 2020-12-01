@@ -20,7 +20,7 @@ struct Camera
 	vec3 origin;
 }; 
 
-vec3 WorldTrace(Ray ray)
+vec3 PathTrace(Ray ray)
 {
 	vec3 unit_direction = normalize(ray.direction);
 	float t = 0.5 * (unit_direction.y + 1.0);
@@ -40,6 +40,6 @@ void main()
 						u * camera.horizontal + 
 						v * camera.vertical - camera.origin;
 
-	FragColor.xyz = WorldTrace(ray);
+	FragColor.xyz = PathTrace(ray);
 	FragColor.w = 1.0;
 }

@@ -154,7 +154,7 @@ bool WorldHit(Ray ray, float t_min, float t_max, inout HitRecord rec)
 	return hitSomething;
 }
 
-vec3 WorldTrace(Ray ray)
+vec3 PathTrace(Ray ray)
 {
 	HitRecord hitRecord;
 	if(WorldHit(ray, 0.0, 1000000.0, hitRecord))
@@ -180,6 +180,6 @@ void main()
 						u * camera.horizontal + 
 						v * camera.vertical - camera.origin;
 	
-	FragColor.xyz = WorldTrace(ray);
+	FragColor.xyz = PathTrace(ray);
 	FragColor.w = 1.0;
 }
