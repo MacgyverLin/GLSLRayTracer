@@ -14,14 +14,250 @@
 #define MAT_DIELECTRIC 2
 #define MAT_PBR 3
 
-class Chapter9 : public FrameWork
+class Camera
 {
 public:
-	Chapter9()
+	Camera()
 	{
 	}
 
-	virtual ~Chapter9()
+	~Camera()
+	{
+	}
+
+	void SetOrigin(const vec3& origin_)
+	{
+		origin = origin_;
+	}
+
+	void SetTarget(const vec3& target_)
+	{
+		target = target_;
+	}
+
+	void SetUp(const vec3& up_)
+	{
+		up = up_;
+	}
+
+	const vec3& GetOrigin() const
+	{
+		return origin;
+	}
+
+	const vec3& GetTarget() const
+	{
+		return target;
+	}
+
+	const vec3& GetUp() const
+	{
+		return up;
+	}
+protected:
+private:
+
+public:
+protected:
+private:
+	vec3 origin;
+	vec3 target;
+	vec3 up;
+
+	float vfov;
+	float aspect;
+};
+
+class World
+{
+public:
+	class Material
+	{
+	public:
+		Material(unsigned int type_)
+			: type(type_)
+		{
+		}
+
+		~Material()
+		{
+		}
+
+		unsigned int GetType() const
+		{
+			return type;
+		}
+
+		void SetUniform(ShaderProgram& shaderProgram, const std::string& name_)
+		{
+			std::stringstream stringStream;
+			stringStream.flush(); stringStream << name_ << ".type";
+			shaderProgram.SetUniform1i(stringStream.str().c_str(), type);
+		}
+	protected:
+	private:
+
+	public:
+	protected:
+	private:
+		unsigned int type;
+	};
+
+	class Geometry
+	{
+	public:
+		Geometry()
+		{
+		}
+
+		~Geometry()
+		{
+		}
+
+		void SetMaterial(Material* material_)
+		{
+			material = material_;
+		}
+
+		Material* GetMaterial()
+		{
+			return material;
+		}
+
+		void SetUniform(ShaderProgram& shaderProgram, const std::string& name_)
+		{
+		}
+	protected:
+	private:
+
+	public:
+	protected:
+	private:
+		Material* material;
+	};
+
+	class Sphere : public Geometry
+	{
+	public:
+		Sphere()
+		{
+		}
+
+		~Sphere()
+		{
+		}
+
+		void SetCenter(const vec3& center_)
+		{
+			center = center_;
+		}
+
+		const vec3& GetCenter() const
+		{
+			return center;
+		}
+
+		void SetRadius(const float& radius_)
+		{
+			radius = radius_;
+		}
+
+		const float& GetRadius() const
+		{
+			return radius;
+		}
+
+		void SetUniform(ShaderProgram& shaderProgram, const std::string& name_)
+		{
+			Geometry::SetUniform(shaderProgram, name_);
+
+			std::stringstream stringStream;
+			stringStream.flush(); stringStream << name_ << ".center";
+			shaderProgram.SetUniform3f(stringStream.str().c_str(), center[0], center[1], center[2]);
+
+			stringStream.flush(); stringStream << name_ << ".radius";
+			shaderProgram.SetUniform1f(stringStream.str().c_str(), radius);
+
+			Geometry::SetUniform(shaderProgram, name_);
+
+			//stringStream.flush(); stringStream << "world.objects[" << i << "].materialType";
+			//shaderProgram.SetUniform1f(stringStream.str().c_str(), materialType);
+
+			//stringStream.flush(); stringStream << "world.objects[" << i << "].material";
+			//shaderProgram.SetUniform1f(stringStream.str().c_str(), materialIdx);
+		}
+	protected:
+	private:
+
+	public:
+	protected:
+	private:
+		vec3 center;
+		float radius;
+	};
+
+	World()
+	{
+	}
+
+	~World()
+	{
+	}
+
+	void SetUniform(ShaderProgram& shaderProgram_, const std::string& name_)
+	{
+		shaderProgram_.SetUniform1i((name_ + "objectCount").c_str(), objects.size());
+		for (int i = 0; i < objects.size(); i++)
+		{
+			std::stringstream stringStream;
+			stringStream.flush(); stringStream << name_ << ".objects[" << i << "]";
+
+			objects[i].SetUniform(shaderProgram_, stringStream.str());
+		}
+
+		shaderProgram_.SetUniform1i((name_ + "materialCount").c_str(), materials.size());
+		for (int i = 0; i < materials.size(); i++)
+		{
+			std::stringstream stringStream;
+			stringStream.flush(); stringStream << name_ << ".materials[" << i << "]";
+
+			materials[i]->SetUniform(shaderProgram_, stringStream.str());
+		}
+	}
+
+	int FindMaterialIdx(Material* material_)
+	{
+		/*
+		std::map<Material*, int>::iterator itr = materials.find(material_);
+		if (itr == materials.end())
+		{
+			return -1;
+		}
+		else
+		{
+			itr->second;
+		}
+		*/
+		for (int i = 0; i < materials.size(); i++)
+		{
+			if (materials[i] == material_)
+				return i;
+		}
+		return -1;
+	}
+private:
+	std::vector<Sphere> objects;
+	std::vector<Material*> materials;
+};
+
+class Chapter11 : public FrameWork
+{
+public:
+	Chapter11()
+	{
+	}
+
+	virtual ~Chapter11()
 	{
 	}
 
@@ -52,12 +288,13 @@ public:
 			return false;
 		}
 
-		if (!randomMap.Create())
+		if(!randomMap.Create())
 		{
 			return false;
 		}
-
+		
 		if (!envMap.Create("../assets/env1.png"))
+		// if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
 		{
 			return false;
 		}
@@ -104,12 +341,17 @@ public:
 		shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		shaderProgram.SetUniform1i("randomMap", 0);
 		shaderProgram.SetUniform1i("envMap", 1);
+		
 
+		//cameraPos = vec3(3, 3, 2);
+		//cameraTarget = vec3(0, 0, -1);
 		shaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);
 		shaderProgram.SetUniform3f("camera.target", cameraTarget[0], cameraTarget[1], cameraTarget[2]);
 		shaderProgram.SetUniform3f("camera.up", 0, 1, 0);
 		shaderProgram.SetUniform1f("camera.vfov", 90.0f);
 		shaderProgram.SetUniform1f("camera.aspect", float(SCR_WIDTH) / SCR_HEIGHT);
+		shaderProgram.SetUniform1f("camera.aperture", 0.05f);
+		shaderProgram.SetUniform1f("camera.focalDistance", 3.0);
 
 		shaderProgram.SetUniform1i("world.objectCount", 4);
 		shaderProgram.SetUniform3f("world.objects[0].center", 0.0, 0.0, -1.0);
@@ -189,14 +431,14 @@ private:
 
 int main()
 {
-	Chapter9 chapter9;
+	Chapter11 chapter11;
 
-	if (!chapter9.Create(SCR_WIDTH, SCR_HEIGHT))
+	if (!chapter11.Create(SCR_WIDTH, SCR_HEIGHT))
 		return -1;
 
-	chapter9.Start();
+	chapter11.Start();
 
-	chapter9.Destroy();
+	chapter11.Destroy();
 
 	return 0;
 }

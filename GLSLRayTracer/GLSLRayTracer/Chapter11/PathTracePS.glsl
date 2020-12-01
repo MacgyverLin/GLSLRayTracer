@@ -77,6 +77,18 @@ vec3 random_in_unit_sphere()
 	return p;
 }
 
+vec3 random_in_unit_disk()
+{
+	vec3 p;
+
+	float theta		= rand() * 2.0 * PI;
+	p.x = cos(theta);
+	p.y = sin(theta);
+	p.z = 0;
+	
+	return p;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 struct Ray {
     vec3 origin;
@@ -90,6 +102,9 @@ struct Camera
 	vec3 up;
 	float vfov;
 	float aspect;
+
+	float aperture;
+	float focalDistance;
 }; 
 
 struct Sphere 
@@ -156,13 +171,14 @@ Ray CameraGetRay(Camera camera, vec2 offset)
 	vec3 u = normalize(cross(camera.up, w));
 	vec3 v = cross(w, u);
 
-	vec3 lower_left_corner = camera.origin - halfWidth * u - halfHeight * v - w;
-	vec3 horizontal = 2.0 * halfWidth * u;
-	vec3 vertical = 2.0 * halfHeight * v;
+	vec3 lower_left_corner = camera.origin - halfWidth * camera.focalDistance * u - halfHeight * camera.focalDistance * v - camera.focalDistance * w;
+	vec3 horizontal = 2.0 * halfWidth * camera.focalDistance * u;
+	vec3 vertical = 2.0 * halfHeight * camera.focalDistance * v;
 
 	Ray ray;
-	ray.origin = camera.origin;
-	ray.direction = lower_left_corner + offset.x * horizontal + offset.y * vertical - camera.origin;
+	vec3 lenoffset = random_in_unit_disk() * (camera.aperture / 2.0);
+	ray.origin = camera.origin + lenoffset;
+	ray.direction = lower_left_corner + offset.x * horizontal + offset.y * vertical - (camera.origin + lenoffset);
 	return ray;
 }
 

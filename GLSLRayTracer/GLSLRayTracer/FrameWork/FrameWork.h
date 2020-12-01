@@ -5,6 +5,8 @@
 #include <GLFW\glfw3.h>
 #include <iostream>
 #include <assert.h>
+#include <string>
+#include <map>
 
 class FrameWork;
 static FrameWork* instance = nullptr;

@@ -14,14 +14,14 @@
 #define MAT_DIELECTRIC 2
 #define MAT_PBR 3
 
-class Chapter9 : public FrameWork
+class Chapter10 : public FrameWork
 {
 public:
-	Chapter9()
+	Chapter10()
 	{
 	}
 
-	virtual ~Chapter9()
+	virtual ~Chapter10()
 	{
 	}
 
@@ -52,17 +52,16 @@ public:
 			return false;
 		}
 
-		if (!randomMap.Create())
+		if(!randomMap.Create())
 		{
 			return false;
 		}
-
+		
 		if (!envMap.Create("../assets/env1.png"))
+		// if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
 		{
 			return false;
 		}
-		envMap.SetMagFilter(GL_LINEAR);
-		envMap.SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
 		return true;
 	}
@@ -104,12 +103,17 @@ public:
 		shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		shaderProgram.SetUniform1i("randomMap", 0);
 		shaderProgram.SetUniform1i("envMap", 1);
+		
 
+		//cameraPos = vec3(3, 3, 2);
+		//cameraTarget = vec3(0, 0, -1);
 		shaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);
 		shaderProgram.SetUniform3f("camera.target", cameraTarget[0], cameraTarget[1], cameraTarget[2]);
 		shaderProgram.SetUniform3f("camera.up", 0, 1, 0);
 		shaderProgram.SetUniform1f("camera.vfov", 90.0f);
 		shaderProgram.SetUniform1f("camera.aspect", float(SCR_WIDTH) / SCR_HEIGHT);
+		shaderProgram.SetUniform1f("camera.aperture", 0.2f);
+		shaderProgram.SetUniform1f("camera.focalDistance", 3.0);
 
 		shaderProgram.SetUniform1i("world.objectCount", 4);
 		shaderProgram.SetUniform3f("world.objects[0].center", 0.0, 0.0, -1.0);
@@ -189,14 +193,14 @@ private:
 
 int main()
 {
-	Chapter9 chapter9;
+	Chapter10 chapter10;
 
-	if (!chapter9.Create(SCR_WIDTH, SCR_HEIGHT))
+	if (!chapter10.Create(SCR_WIDTH, SCR_HEIGHT))
 		return -1;
 
-	chapter9.Start();
+	chapter10.Start();
 
-	chapter9.Destroy();
+	chapter10.Destroy();
 
 	return 0;
 }
