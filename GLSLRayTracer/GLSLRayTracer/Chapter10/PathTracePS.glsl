@@ -9,7 +9,7 @@ uniform samplerCube envMap;
 
 out vec4 FragColor;
 
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 uint rng_state;
 
 uint rand_lcg()
@@ -38,14 +38,37 @@ float randcore3()
 	return float(rand_xorshift()) * (1.0 / 4294967296.0);
 }
 
+uint wang_seed;
+uint wang_hash(uint seed)
+{
+    seed = (seed ^ uint(61)) ^ (seed >> uint(16));
+    seed *= uint(9);
+    seed = seed ^ (seed >> uint(4));
+    seed *= uint(0x27d4eb2d);
+    seed = seed ^ (seed >> uint(15));
+    return seed;
+}
+
+void seedcore4(vec2 screenCoord)
+{
+	wang_seed = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y);
+}
+
+float randcore4()
+{
+	wang_seed = wang_hash(wang_seed);
+
+	return float(wang_seed) * (1.0 / 4294967296.0);
+}
+
 void seed(vec2 screenCoord)
 {
-	seedcore3(screenCoord);
+	seedcore4(screenCoord);
 }
 
 float rand()
 {
-	return randcore3();
+	return randcore4();
 }
 
 vec2 rand2()
@@ -63,24 +86,23 @@ vec4 rand4()
 	return vec4(rand(), rand(), rand(), rand());
 }
 
-///////////////////////////////////////////////////////////////////////////////
 vec3 random_in_unit_sphere()
 {
 	vec3 p;
 	
-	/*
-	do
-	{
-		p = 2.0 * rand3() - vec3(1, 1, 1);
-	}while(dot(p, p)>=1.0);
-	return p;
-	*/
+	//do
+	//{
+		//p = 2.0 * rand3() - vec3(1, 1, 1);
+	//}while(dot(p, p)>=1.0);
+	//return p;
 
-	float phi		= rand() * 2.0 * PI;
-	float theta		= rand() * PI;
-	p.y = cos(theta);
-	p.x = sin(theta) * cos(phi);
-	p.z = sin(theta) * sin(phi);
+	//float phi		= rand() * 2.0 * PI;
+	//float theta		= rand() * PI;
+	//p.y = cos(theta);
+	//p.x = sin(theta) * cos(phi);
+	//p.z = sin(theta) * sin(phi);
+
+	p = normalize(rand3());
 	
 	return p;
 }
@@ -89,10 +111,12 @@ vec3 random_in_unit_disk()
 {
 	vec3 p;
 
-	float theta		= rand() * 2.0 * PI;
-	p.x = cos(theta);
-	p.y = sin(theta);
-	p.z = 0;
+	//float theta		= rand() * 2.0 * PI;
+	//p.x = cos(theta);
+	//p.y = sin(theta);
+	//p.z = 0;
+
+	p = normalize(vec3(rand(), rand(), 0));
 	
 	return p;
 }
@@ -547,6 +571,7 @@ void main()
 	}
 	col /= ns;
 
-	FragColor.xyz = GammaCorrection(col);
+	//FragColor.xyz = GammaCorrection(col);
+	FragColor.xyz = col;
 	FragColor.w = 1.0;
 }

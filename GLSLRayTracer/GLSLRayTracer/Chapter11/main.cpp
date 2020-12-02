@@ -415,7 +415,7 @@ public:
 		shaderProgram.SetUniform1i("world.objectCount", 4);
 		shaderProgram.SetUniform3f("world.objects[0].center", 0.0, 0.0, -1.0);
 		shaderProgram.SetUniform1f("world.objects[0].radius", 0.5);
-		shaderProgram.SetUniform1i("world.objects[0].materialType", MAT_PBR);
+		shaderProgram.SetUniform1i("world.objects[0].materialType", MAT_LAMBERTIAN);
 		shaderProgram.SetUniform1i("world.objects[0].material", 0);
 		shaderProgram.SetUniform3f("world.objects[1].center", 1.0, 0.0, -1.0);
 		shaderProgram.SetUniform1f("world.objects[1].radius", 0.5);
