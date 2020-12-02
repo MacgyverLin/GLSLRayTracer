@@ -21,7 +21,7 @@ public:
 	{
 	}
 
-	bool Create(const char* vertexPath, const char* fragmentPath)
+	bool Create(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
 	{
 		// 1. retrieve the vertex/fragment source code from filePath
 		std::string vertexCode;
@@ -39,19 +39,27 @@ public:
 			// open files
 			vShaderFile.open(vertexPath);
 			fShaderFile.open(fragmentPath);
-			std::stringstream vShaderStream, fShaderStream;
+			if(geometryPath)
+				gShaderFile.open(geometryPath);
+			std::stringstream vShaderStream, fShaderStream, gShaderStream;
 
 			// read file's buffer contents into streams
 			vShaderStream << vShaderFile.rdbuf();
 			fShaderStream << fShaderFile.rdbuf();
+			if (geometryPath)
+				gShaderStream << gShaderFile.rdbuf();
 
 			// close file handlers
 			vShaderFile.close();
 			fShaderFile.close();
+			if (geometryPath)
+				gShaderFile.close();
 
 			// convert stream into string
 			vertexCode = vShaderStream.str();
 			fragmentCode = fShaderStream.str();
+			if (geometryPath)
+				geometryCode = gShaderStream.str();
 		}
 		catch (std::ifstream::failure&)
 		{
@@ -60,9 +68,12 @@ public:
 
 		const char* vShaderCode = vertexCode.c_str();
 		const char* fShaderCode = fragmentCode.c_str();
+		const char* gShaderCode = geometryCode.c_str();
+		if (geometryPath)
+			gShaderCode = geometryCode.c_str();
 
 		// 2. compile shaders
-		unsigned int vertex, fragment;
+		unsigned int vertex, fragment, geometry;
 		// vertex shader
 		vertex = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertex, 1, &vShaderCode, NULL);
@@ -75,16 +86,32 @@ public:
 		glCompileShader(fragment);
 		CheckCompileErrors(fragment, "FRAGMENT");
 
+		if (geometryPath)
+		{
+			// fragment Shader
+			geometry = glCreateShader(GL_GEOMETRY_SHADER);
+			glShaderSource(geometry, 1, &gShaderCode, NULL);
+			glCompileShader(geometry);
+			CheckCompileErrors(geometry, "GEOMETRY");
+		}
+
 		// shader Program
 		handle = glCreateProgram();
 		glAttachShader(handle, vertex);
 		glAttachShader(handle, fragment);
+		if (geometryPath)
+		{
+			glAttachShader(handle, geometry);
+		}
 
 		glLinkProgram(handle);
 		CheckCompileErrors(handle, "PROGRAM");
-		// delete the shaders as they're linked into our program now and no longer necessery
 		glDeleteShader(vertex);
 		glDeleteShader(fragment);
+		if(geometryPath)
+		{
+			glDeleteShader(geometry);
+		}
 
 		return true;
 	}
