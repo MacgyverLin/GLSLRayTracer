@@ -287,11 +287,6 @@ public:
 		{
 			return false;
 		}
-
-		if(!randomMap.Create())
-		{
-			return false;
-		}
 		
 		if (!envMap.Create("../assets/env1.png"))
 		// if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
@@ -301,7 +296,15 @@ public:
 		envMap.SetMagFilter(GL_LINEAR);
 		envMap.SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
+		roughness = 0.0001f;
+		metallic = 1.0f;
+		anisotropic = 0.0f;
 		return true;
+	}
+
+	void dump()
+	{
+		printf("roughness=%3.3f, metallic=%3.3f, anisotropic=%3.3f\n", roughness, metallic, anisotropic);
 	}
 
 	virtual bool OnUpdate() override
@@ -334,16 +337,72 @@ public:
 			cameraPos -= (cameraTarget - cameraPos).Cross(vec3(0, 1, 0)) * 0.016;
 		}
 
+		static int delay = 3;
+		if (delay-- == 0)
+		{
+			delay = 3;
+			if (IsKeyPressed('R'))
+			{
+				roughness += 0.1f;
+				if (roughness > 1)
+					roughness = 1;
+
+				dump();
+			}
+			if (IsKeyPressed('F'))
+			{
+				roughness -= 0.1f;
+				if (roughness < 0)
+					roughness = 0;
+
+				dump();
+			}
+
+			if (IsKeyPressed('T'))
+			{
+				metallic += 0.1f;
+				if (metallic > 1)
+					metallic = 1;
+				
+				dump();
+			}
+			if (IsKeyPressed('G'))
+			{
+				metallic -= 0.1f;
+				if (metallic < 0)
+					metallic = 0;
+
+				dump();
+			}
+
+			if (IsKeyPressed('Y'))
+			{
+				anisotropic += 0.02f;
+				if (anisotropic > 1)
+					anisotropic = 1;
+
+				dump();
+			}
+			if (IsKeyPressed('H'))
+			{
+				anisotropic -= 0.02f;
+				if (anisotropic < -1)
+					anisotropic = -1;
+
+				dump();
+			}
+		}
+
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		shaderProgram.Bind();
 		shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
-		shaderProgram.SetUniform1i("randomMap", 0);
-		shaderProgram.SetUniform1i("envMap", 1);
+		
+		shaderProgram.SetUniform1i("envMap", 0);
 		
 
-		//cameraPos = vec3(3, 3, 2);
+		//cameraPos = vec3(0, 0, 0);
 		//cameraTarget = vec3(0, 0, -1);
 		shaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);
 		shaderProgram.SetUniform3f("camera.target", cameraTarget[0], cameraTarget[1], cameraTarget[2]);
@@ -356,7 +415,7 @@ public:
 		shaderProgram.SetUniform1i("world.objectCount", 4);
 		shaderProgram.SetUniform3f("world.objects[0].center", 0.0, 0.0, -1.0);
 		shaderProgram.SetUniform1f("world.objects[0].radius", 0.5);
-		shaderProgram.SetUniform1i("world.objects[0].materialType", MAT_LAMBERTIAN);
+		shaderProgram.SetUniform1i("world.objects[0].materialType", MAT_PBR);
 		shaderProgram.SetUniform1i("world.objects[0].material", 0);
 		shaderProgram.SetUniform3f("world.objects[1].center", 1.0, 0.0, -1.0);
 		shaderProgram.SetUniform1f("world.objects[1].radius", 0.5);
@@ -377,7 +436,7 @@ public:
 		shaderProgram.SetUniform3f("lambertMaterials[3].albedo", 0.0, 0.0, 1.0);
 
 		shaderProgram.SetUniform3f("metallicMaterials[0].albedo", 0.8, 0.6, 0.0);
-		shaderProgram.SetUniform1f("metallicMaterials[0].roughness", 0.0);
+		shaderProgram.SetUniform1f("metallicMaterials[0].roughness", roughness);
 		shaderProgram.SetUniform3f("metallicMaterials[1].albedo", 0.8, 0.6, 0.0);
 		shaderProgram.SetUniform1f("metallicMaterials[1].roughness", 0.0);
 		shaderProgram.SetUniform3f("metallicMaterials[2].albedo", 0.0, 0.0, 1.0);
@@ -398,10 +457,16 @@ public:
 		shaderProgram.SetUniform1f("dielectricMaterials[3].roughness", 0.0);
 		shaderProgram.SetUniform1f("dielectricMaterials[3].ior", 1.5);
 
+		shaderProgram.SetUniform3f("pbrMaterials[0].albedo", 1.0, 0.0, 0.0);
+		shaderProgram.SetUniform3f("pbrMaterials[0].specColor", 1.0, 1.0, 1.0);
+		shaderProgram.SetUniform1f("pbrMaterials[0].metallic", metallic);
+		shaderProgram.SetUniform1f("pbrMaterials[0].roughness", roughness);
+		shaderProgram.SetUniform1f("pbrMaterials[0].anisotropic", anisotropic);
+		
 		vertexArrayObject.Bind();
 
-		randomMap.Bind(0);
-		envMap.Bind(1);
+		
+		envMap.Bind(0);
 
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
@@ -410,7 +475,7 @@ public:
 
 	void OnDestroy() override
 	{
-		randomMap.Destroy();
+		
 
 		envMap.Destroy();
 
@@ -420,13 +485,17 @@ public:
 	}
 private:
 	ShaderProgram shaderProgram;
-	RandomTexture2D randomMap;
+	
 	TextureCube envMap;
 	VertexArrayObject vertexArrayObject;
 
 	vec3 cameraPos;
 	vec3 cameraTarget;
 	vec3 cameraUp;
+
+	float roughness;
+	float metallic;
+	float anisotropic;
 };
 
 int main()

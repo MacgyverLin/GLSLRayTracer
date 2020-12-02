@@ -2,40 +2,48 @@
 in vec2 screenCoord;
 
 uniform vec2 screenSize;
-uniform sampler2D randomMap;
+
 uniform sampler2D envMap;
 
 out vec4 FragColor;
 
 //////////////////////////////////////////////////////////////////////////////
-float randIdx = 0;
-void seedcore2(vec2 screenCoord)
+uint rng_state;
+
+uint rand_lcg()
 {
-	float x = (screenCoord.x * screenSize.x);
-	float y = (screenCoord.y * screenSize.y);
-	
-	randIdx = y * screenSize.x + x;
+    // LCG values from Numerical Recipes
+    rng_state = uint(1664525) * rng_state + uint(1013904223);
+    return rng_state;
 }
 
-#define RAND_TEX_SIZE 1048
-
-float randcore2()
+uint rand_xorshift()
 {
-	randIdx += 1 * RAND_TEX_SIZE;
-	float u = mod(randIdx, RAND_TEX_SIZE) / RAND_TEX_SIZE;
-	float v = floor(randIdx / RAND_TEX_SIZE) / RAND_TEX_SIZE;
+    // Xorshift algorithm from George Marsaglia's paper
+    rng_state ^= (rng_state << 13);
+    rng_state ^= (rng_state >> 17);
+    rng_state ^= (rng_state << 5);
+    return rng_state;
+}
 
-	return texture(randomMap, vec2(u, v)).x;
+void seedcore3(vec2 screenCoord)
+{
+	rng_state = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y);
+}
+
+float randcore3()
+{
+	return float(rand_xorshift()) * (1.0 / 4294967296.0);
 }
 
 void seed(vec2 screenCoord)
 {
-	seedcore2(screenCoord);
+	seedcore3(screenCoord);
 }
 
 float rand()
 {
-	return randcore2();
+	return randcore3();
 }
 
 vec2 rand2()

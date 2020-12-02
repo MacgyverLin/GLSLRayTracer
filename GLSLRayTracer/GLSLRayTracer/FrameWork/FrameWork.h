@@ -98,6 +98,11 @@ protected:
 		return glfwGetKey(window, GLFW_KEY_0 + key - '0') == GLFW_RELEASE;
 	}
 
+	bool IsKeyRepeat(char key)
+	{
+		return glfwGetKey(window, GLFW_KEY_0 + key - '0') == GLFW_REPEAT;
+	}
+
 	void GetTheta(float& theta_, float& phi_)
 	{
 		theta_ = theta;
