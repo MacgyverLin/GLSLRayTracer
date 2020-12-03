@@ -14,29 +14,14 @@
 #define MAT_DIELECTRIC 2
 #define MAT_PBR 3
 
-class Chapter8 : public FrameWork
+class Chapter12 : public FrameWork
 {
 public:
-	void dumpGussian(float mu, float sigma)
+	Chapter12()
 	{
-		float total = 0.0;
-		for (float x = 0; x < 10; x++)
-		{
-			total += 1.0 / (sqrt(2.0 * 3.1415) * sigma) * exp(-(x - mu) * (x - mu) / (2 * sigma * sigma));
-		}
-
-		for (float x = 0; x < 10; x++)
-		{
-			printf("%3.4f, ", 1.0 / (sqrt(2.0 * 3.1415) * sigma) * exp(-(x - mu) * (x - mu) / (2 * sigma * sigma)) * 0.5f / total);
-		}
 	}
 
-	Chapter8()
-	{
-		dumpGussian(0.0, 3);
-	}
-
-	virtual ~Chapter8()
+	virtual ~Chapter12()
 	{
 	}
 
@@ -72,13 +57,18 @@ public:
 			return false;
 		}
 
+		if (!frameBufferTexture.Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
+		{
+			return false;
+		}
+
 		for (int i = 0; i < 2; i++)
 		{
 			if (!pingpongTexture[i].Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
 			{
 				return false;
 			}
-		}
+		}		
 
 		if (!proprocessingShaderProgram.Create("BlitVS.glsl", "BlitPS.glsl"))
 		{
@@ -138,7 +128,7 @@ public:
 			printf("%d\n", sampleCount);
 		}
 
-		static int blur = 0;
+		static int blur = 5;
 		static int blurdir = 1;
 		if (IsKeyPressed('B'))
 		{
@@ -157,11 +147,30 @@ public:
 			printf("%d\n", blur);
 		}
 
+		static float threshold = 0.95;
+		static float thresholddir = 1;
+		if (IsKeyPressed('T'))
+		{
+			threshold += thresholddir * 0.01;
+			if (threshold > 1)
+			{
+				threshold = 1;
+				thresholddir = -1;
+			}
+			if (threshold < 0)
+			{
+				threshold = 0;
+				thresholddir = 1;
+			}
+
+			printf("%f\n", threshold);
+		}
+
 		//////////////////////////////////////////////////////
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		pingpongTexture[0].BindFrameBuffer();
+		frameBufferTexture.BindFrameBuffer();
 		envMap.Bind(0);
 
 		pathTraceShaderProgram.Bind();
@@ -228,11 +237,15 @@ public:
 		int last = 0;
 		for (int i = 0; i < blur; i++)
 		{
-			int ping = i%2;
+			int ping = (i%2);
 			int pong = (i+1)%2;
 
 			pingpongTexture[pong].BindFrameBuffer();
-			pingpongTexture[ping].Bind(0);
+			if(i==0)
+				frameBufferTexture.Bind(0);
+			else
+				pingpongTexture[ping].Bind(0);
+
 			pingpongTexture[ping].SetWarpS(GL_CLAMP);
 			pingpongTexture[ping].SetWarpT(GL_CLAMP);
 			pingpongTexture[ping].SetWarpR(GL_CLAMP);
@@ -240,25 +253,50 @@ public:
 			proprocessingShaderProgram.Bind();
 			proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 			proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
-			proprocessingShaderProgram.SetUniform1i("useGussian", 1);
 			proprocessingShaderProgram.SetUniform1i("horizontal", ping);
+			proprocessingShaderProgram.SetUniform1i("useGussian", i!=0);
+			proprocessingShaderProgram.SetUniform1i("useThreshold", i==0);
+			proprocessingShaderProgram.SetUniform1i("useBlend", false);
+			proprocessingShaderProgram.SetUniform1f("threshold", threshold);
+			
+			
 
 			vertexArrayObject.Bind();
 			vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
 			last = pong;
 		}
+		
+		// draw to frame buffer
+		pingpongTexture[last].UnBindFrameBuffer();
+		frameBufferTexture.Bind(0);
+		proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
+		proprocessingShaderProgram.SetUniform1i("horizontal", 0);
+		proprocessingShaderProgram.SetUniform1i("useGussian", false);
+		proprocessingShaderProgram.SetUniform1i("useThreshold", false);
+		proprocessingShaderProgram.SetUniform1i("useBlend", false);
+		proprocessingShaderProgram.SetUniform1f("threshold", threshold);
+		vertexArrayObject.Bind();
+		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
+		glEnable(GL_BLEND);
+		glBlendEquation(GL_ADD);
+		glBlendFunc(GL_ONE, GL_ONE);
 		// draw to frame buffer
 		pingpongTexture[last].UnBindFrameBuffer();
 		pingpongTexture[last].Bind(0);
 		proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
-		proprocessingShaderProgram.SetUniform1i("useGussian", 0);
-		proprocessingShaderProgram.SetUniform1i("horizontal", 0);		
-
+		proprocessingShaderProgram.SetUniform1i("horizontal", 0);
+		proprocessingShaderProgram.SetUniform1i("useGussian", false);
+		proprocessingShaderProgram.SetUniform1i("useThreshold", false);
+		proprocessingShaderProgram.SetUniform1i("useBlend", true);
+		proprocessingShaderProgram.SetUniform1f("threshold", threshold);
 		vertexArrayObject.Bind();
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
+
+		glDisable(GL_BLEND);
 
 		return true;
 	}
@@ -284,6 +322,8 @@ private:
 	FrameBufferTexture2D pingpongTexture[2];
 	ShaderProgram proprocessingShaderProgram;
 
+	FrameBufferTexture2D frameBufferTexture;
+
 	int sampleCount;
 
 	vec3 cameraPos;
@@ -293,7 +333,7 @@ private:
 
 int main()
 {
-	Chapter8 chapter;
+	Chapter12 chapter;
 
 	if (!chapter.Create(SCR_WIDTH, SCR_HEIGHT))
 		return -1;

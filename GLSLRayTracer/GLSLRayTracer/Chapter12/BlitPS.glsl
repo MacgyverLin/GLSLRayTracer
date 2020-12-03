@@ -6,6 +6,8 @@ uniform sampler2D frameBufferTexture;
 
 uniform bool horizontal;
 uniform bool useGussian;
+uniform bool useThreshold;
+uniform float threshold;
 
 out vec4 FragColor;
 
@@ -124,8 +126,31 @@ void main()
     // guassianKernel(guassian, 1.0);
     // FragColor = vec4(filter(guassian), 1.0);
     
-    if(useGussian)
-        FragColor = vec4(guassian(horizontal), 1.0);
+    vec4 finalcolor = vec4(1.0, 0.0 ,1.0, 1.0);
+    if(useThreshold)
+    {
+        vec3 col = tex0();
+        float brightness = dot(col, vec3(0.2126, 0.7152, 0.0722));
+        if(brightness>threshold)
+        {
+            finalcolor = vec4(col, 1.0);
+        }
+        else
+        {
+            finalcolor = vec4(0.0);
+        }
+    }
     else
-        FragColor = vec4(tex0(), 1.0);
+    {
+        if(useGussian)
+        {
+            finalcolor = vec4(guassian(horizontal), 1.0);
+        }
+        else
+        {
+            finalcolor = vec4(tex0(), 1.0);
+        }
+    }
+
+    FragColor = finalcolor;
 }

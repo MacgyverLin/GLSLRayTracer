@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{247F8F5A-B3EA-40BE-A953-C61BE7A08E03}</ProjectGuid>
+    <ProjectGuid>{91DD6CEA-0946-4BEF-A9A5-93F5CBB596F9}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>OpenGLRayTraceTest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
