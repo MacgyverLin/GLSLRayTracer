@@ -17,23 +17,8 @@
 class Chapter8 : public FrameWork
 {
 public:
-	void dumpGussian(float mu, float sigma)
-	{
-		float total = 0.0;
-		for (float x = 0; x < 10; x++)
-		{
-			total += 1.0 / (sqrt(2.0 * 3.1415) * sigma) * exp(-(x - mu) * (x - mu) / (2 * sigma * sigma));
-		}
-
-		for (float x = 0; x < 10; x++)
-		{
-			printf("%3.4f, ", 1.0 / (sqrt(2.0 * 3.1415) * sigma) * exp(-(x - mu) * (x - mu) / (2 * sigma * sigma)) * 0.5f / total);
-		}
-	}
-
 	Chapter8()
 	{
-		dumpGussian(0.0, 3);
 	}
 
 	virtual ~Chapter8()
@@ -72,12 +57,9 @@ public:
 			return false;
 		}
 
-		for (int i = 0; i < 2; i++)
+		if (!frameBufferTexture.Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
 		{
-			if (!pingpongTexture[i].Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
-			{
-				return false;
-			}
+			return false;
 		}
 
 		if (!proprocessingShaderProgram.Create("BlitVS.glsl", "BlitPS.glsl"))
@@ -138,7 +120,7 @@ public:
 			printf("%d\n", sampleCount);
 		}
 
-		static int blur = 0;
+		static int blur = 5;
 		static int blurdir = 1;
 		if (IsKeyPressed('B'))
 		{
@@ -157,11 +139,30 @@ public:
 			printf("%d\n", blur);
 		}
 
+		static float threshold = 0.95;
+		static float thresholddir = 1;
+		if (IsKeyPressed('T'))
+		{
+			threshold += thresholddir * 0.01;
+			if (threshold > 1)
+			{
+				threshold = 1;
+				thresholddir = -1;
+			}
+			if (threshold < 0)
+			{
+				threshold = 0;
+				thresholddir = 1;
+			}
+
+			printf("%f\n", threshold);
+		}
+
 		//////////////////////////////////////////////////////
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		pingpongTexture[0].BindFrameBuffer();
+		frameBufferTexture.BindFrameBuffer();
 		envMap.Bind(0);
 
 		pathTraceShaderProgram.Bind();
@@ -225,38 +226,11 @@ public:
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
 		//////////////////////////////////////////////////////
-		int last = 0;
-		for (int i = 0; i < blur; i++)
-		{
-			int ping = i%2;
-			int pong = (i+1)%2;
-
-			pingpongTexture[pong].BindFrameBuffer();
-			pingpongTexture[ping].Bind(0);
-			pingpongTexture[ping].SetWarpS(GL_CLAMP);
-			pingpongTexture[ping].SetWarpT(GL_CLAMP);
-			pingpongTexture[ping].SetWarpR(GL_CLAMP);
-
-			proprocessingShaderProgram.Bind();
-			proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
-			proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
-			proprocessingShaderProgram.SetUniform1i("useGussian", 1);
-			proprocessingShaderProgram.SetUniform1i("horizontal", ping);
-
-			vertexArrayObject.Bind();
-			vertexArrayObject.Draw(GL_TRIANGLES, 6);
-
-			last = pong;
-		}
-
 		// draw to frame buffer
-		pingpongTexture[last].UnBindFrameBuffer();
-		pingpongTexture[last].Bind(0);
+		frameBufferTexture.UnBindFrameBuffer();
+		frameBufferTexture.Bind(0);
 		proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
-		proprocessingShaderProgram.SetUniform1i("useGussian", 0);
-		proprocessingShaderProgram.SetUniform1i("horizontal", 0);		
-
 		vertexArrayObject.Bind();
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
@@ -265,23 +239,23 @@ public:
 
 	void OnDestroy() override
 	{
+		frameBufferTexture.Destroy();
+
 		vertexArrayObject.Destroy();
 
 		envMap.Destroy();
 		pathTraceShaderProgram.Destroy();
 
-		for(int i=0; i<2; i++)
-			pingpongTexture[i].Destroy();
-		
 		proprocessingShaderProgram.Destroy();
 	}
 private:
+	FrameBufferTexture2D frameBufferTexture;
+
 	VertexArrayObject vertexArrayObject;
 
 	TextureCube envMap;
 	ShaderProgram pathTraceShaderProgram;
 
-	FrameBufferTexture2D pingpongTexture[2];
 	ShaderProgram proprocessingShaderProgram;
 
 	int sampleCount;
