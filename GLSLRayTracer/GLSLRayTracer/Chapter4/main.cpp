@@ -33,17 +33,27 @@ public:
 			1, 2, 3    // second triangle
 		};
 
-		if (!vertexArrayObject.Create(vertices, sizeof(vertices) / sizeof(vertices[0]), indices, sizeof(indices) / sizeof(indices[0])))
-		{
-			return false;
-		}
-
-		if (!shaderProgram.Create("PathTraceVS.glsl", "PathTracePS.glsl"))
+		if (!frameBufferTexture.Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
 		{
 			return false;
 		}
 
 		if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
+		{
+			return false;
+		}
+
+		if (!pathTraceShaderProgram.Create("PathTraceVS.glsl", "PathTracePS.glsl"))
+		{
+			return false;
+		}
+
+		if (!proprocessingShaderProgram.Create("BlitVS.glsl", "BlitPS.glsl"))
+		{
+			return false;
+		}
+
+		if (!vertexArrayObject.Create(vertices, sizeof(vertices) / sizeof(vertices[0]), indices, sizeof(indices) / sizeof(indices[0])))
 		{
 			return false;
 		}
@@ -56,21 +66,31 @@ public:
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		shaderProgram.Bind();
-		shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
-		
-		shaderProgram.SetUniform1i("envMap", 0);
+		//////////////////////////////////////////////////////
+		frameBufferTexture.BindFrameBuffer();
 
-		shaderProgram.SetUniform3f("camera.lower_left_corner", -2.0, -1.0, -1.0);
-		shaderProgram.SetUniform3f("camera.horizontal", 4.0, 0.0, 0.0);
-		shaderProgram.SetUniform3f("camera.vertical", 0.0, 2.0, 0.0);
-		shaderProgram.SetUniform3f("camera.origin", 0.0, 0.0, 0.0);
-
-		vertexArrayObject.Bind();
-
-		
 		envMap.Bind(0);
 
+		pathTraceShaderProgram.Bind();
+		pathTraceShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		pathTraceShaderProgram.SetUniform1i("envMap", 0);
+
+		pathTraceShaderProgram.SetUniform3f("camera.lower_left_corner", -2.0, -1.0, -1.0);
+		pathTraceShaderProgram.SetUniform3f("camera.horizontal", 4.0, 0.0, 0.0);
+		pathTraceShaderProgram.SetUniform3f("camera.vertical", 0.0, 2.0, 0.0);
+		pathTraceShaderProgram.SetUniform3f("camera.origin", 0.0, 0.0, 0.0);
+
+		vertexArrayObject.Bind();
+		vertexArrayObject.Draw(GL_TRIANGLES, 6);
+
+		//////////////////////////////////////////////////////
+		frameBufferTexture.UnBindFrameBuffer();
+
+		frameBufferTexture.Bind(0);
+		proprocessingShaderProgram.Bind();
+		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
+
+		vertexArrayObject.Bind();
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
 		return true;
@@ -78,31 +98,33 @@ public:
 
 	void OnDestroy() override
 	{
-		
-
 		envMap.Destroy();
+		pathTraceShaderProgram.Destroy();
 
-		shaderProgram.Destroy();
-
+		frameBufferTexture.Destroy();
+		proprocessingShaderProgram.Destroy();
 		vertexArrayObject.Destroy();
 	}
 private:
-	ShaderProgram shaderProgram;
-	
-	Texture2D envMap;
+	FrameBufferTexture2D frameBufferTexture;
+
+	TextureCube envMap;
+	ShaderProgram pathTraceShaderProgram;
+
+	ShaderProgram proprocessingShaderProgram;
 	VertexArrayObject vertexArrayObject;
 };
 
 int main()
 {
-	Chapter4 chapter4;
+	Chapter4 chapter;
 
-	if (!chapter4.Create(SCR_WIDTH, SCR_HEIGHT))
+	if (!chapter.Create(SCR_WIDTH, SCR_HEIGHT))
 		return -1;
 
-	chapter4.Start();
+	chapter.Start();
 
-	chapter4.Destroy();
+	chapter.Destroy();
 
 	return 0;
 }

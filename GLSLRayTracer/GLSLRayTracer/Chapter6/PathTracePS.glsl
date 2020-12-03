@@ -5,6 +5,8 @@ uniform vec2 screenSize;
 
 uniform sampler2D envMap;
 
+uniform int sampleCount;
+
 out vec4 FragColor;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -299,7 +301,7 @@ void main()
 	float v = screenCoord.y;
 	
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = 100;
+	int ns = sampleCount;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, vec2(u, v) + rand2() / screenSize);

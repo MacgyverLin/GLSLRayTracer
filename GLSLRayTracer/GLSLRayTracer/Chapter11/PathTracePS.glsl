@@ -4,6 +4,7 @@
 in vec2 screenCoord;
 
 uniform vec2 screenSize;
+uniform int sampleCount;
 
 uniform samplerCube envMap;
 
@@ -681,9 +682,9 @@ bool WorldHit(Ray ray, float t_min, float t_max, inout HitRecord rec)
 vec3 GetEnvironmentColor(World world, Ray ray)
 {
 	//return vec3(0.7, 0.7, 0.7);
-	vec3 unit_direction = normalize(ray.direction);
-	float t = 0.5 * (unit_direction.y + 1.0);
-	return vec3(1.0, 1.0, 1.0) * (1.0 - t) + vec3(0.5, 0.7, 1.0) * t;
+	//vec3 unit_direction = normalize(ray.direction);
+	//float t = 0.5 * (unit_direction.y + 1.0);
+	//return vec3(1.0, 1.0, 1.0) * (1.0 - t) + vec3(0.5, 0.7, 1.0) * t;
 	
 	//vec3 dir = normalize(ray.direction);
 	//float theta = acos(dir.y) / PI;
@@ -736,7 +737,7 @@ void main()
 	seed(screenCoord);
 
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = 100;
+	int ns = sampleCount;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
@@ -744,7 +745,7 @@ void main()
 	}
 	col /= ns;
 
-	FragColor.xyz = col;
-	//FragColor.xyz = GammaCorrection(col);
+	//FragColor.xyz = col;
+	FragColor.xyz = GammaCorrection(col);
 	FragColor.w = 1.0;
 }

@@ -187,6 +187,7 @@ public:
 
 	virtual ~Texture2D()
 	{
+		Destroy();
 	}
 
 	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, bool isHDR, void* data)
@@ -270,6 +271,77 @@ private:
 private:
 };
 
+class FrameBufferTexture2D : public Texture
+{
+public:
+	FrameBufferTexture2D()
+		: Texture(GL_TEXTURE_2D)
+		, fbo(0)
+	{
+	}
+
+	virtual ~FrameBufferTexture2D()
+	{
+		Destroy();
+	}
+
+	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, bool isHDR)
+	{
+		SetFormat(nrComponents, isHDR);
+		
+		glGenFramebuffers(1, &fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		if (!glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
+		{
+			return false;
+		}
+
+		// generate texture
+		glGenTextures(1, &handle);
+		glBindTexture(GL_TEXTURE_2D, handle);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, handle, 0);
+
+		glGenRenderbuffers(1, &rbo);
+		glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height); // use a single renderbuffer object for both a depth AND stencil buffer.
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+		// now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			return false;
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		return true;
+	}
+
+	void Destroy()
+	{
+		if (fbo)
+		{
+			glDeleteFramebuffers(1, &fbo);
+			fbo = 0;
+		}
+	}
+
+	void BindFrameBuffer()
+	{
+		if (fbo)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		}
+	}
+
+	void UnBindFrameBuffer()
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+private:
+private:
+	unsigned int fbo;
+	unsigned int rbo;
+};
+
 class TextureCube : public Texture
 {
 public:
@@ -280,6 +352,7 @@ public:
 
 	virtual ~TextureCube()
 	{
+		Destroy();
 	}
 
 	bool Create(unsigned int size, unsigned int nrComponents, bool isHDR, void* data)

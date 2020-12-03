@@ -19,6 +19,7 @@ public:
 
 	~ShaderProgram()
 	{
+		Destroy();
 	}
 
 	bool Create(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)

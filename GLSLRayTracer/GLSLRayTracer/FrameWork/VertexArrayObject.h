@@ -16,6 +16,7 @@ public:
 
 	virtual ~VertexArrayObject()
 	{
+		Destroy();
 	}
 
 	bool Create(float* vertices, int verticesCount, unsigned int* indices, int indicesCount)

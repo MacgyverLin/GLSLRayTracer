@@ -9,6 +9,8 @@ uniform sampler2D envMap;
 
 out vec4 FragColor;
 
+uniform int sampleCount;
+
 ///////////////////////////////////////////////////////////////////////////////
 uint rng_state;
 
@@ -570,7 +572,7 @@ void main()
 	seed(screenCoord);
 
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = 100;
+	int ns = sampleCount;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);

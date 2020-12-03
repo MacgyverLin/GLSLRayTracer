@@ -42,21 +42,34 @@ public:
 			1, 2, 3    // second triangle
 		};
 
-		if (!vertexArrayObject.Create(vertices, sizeof(vertices) / sizeof(vertices[0]), indices, sizeof(indices) / sizeof(indices[0])))
-		{
-			return false;
-		}
-
-		if (!shaderProgram.Create("PathTraceVS.glsl", "PathTracePS.glsl"))
+		if (!frameBufferTexture.Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
 		{
 			return false;
 		}
 
 		if (!envMap.Create("../assets/env1.png"))
-		// if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
 		{
 			return false;
 		}
+		envMap.SetMagFilter(GL_LINEAR);
+		envMap.SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+
+		if (!pathTraceShaderProgram.Create("PathTraceVS.glsl", "PathTracePS.glsl"))
+		{
+			return false;
+		}
+
+		if (!proprocessingShaderProgram.Create("BlitVS.glsl", "BlitPS.glsl"))
+		{
+			return false;
+		}
+
+		if (!vertexArrayObject.Create(vertices, sizeof(vertices) / sizeof(vertices[0]), indices, sizeof(indices) / sizeof(indices[0])))
+		{
+			return false;
+		}
+
+		sampleCount = 30;
 
 		return true;
 	}
@@ -90,76 +103,92 @@ public:
 		{
 			cameraPos -= (cameraTarget - cameraPos).Cross(vec3(0, 1, 0)) * 0.016;
 		}
+		if (IsKeyPressed(' '))
+		{
+			sampleCount++;
+			if (sampleCount > 1000)
+				sampleCount = 30;
 
+			printf("%d\n", sampleCount);
+		}
+
+		//////////////////////////////////////////////////////
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		shaderProgram.Bind();
-		shaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
-		
-		shaderProgram.SetUniform1i("envMap", 0);
-		
+		frameBufferTexture.BindFrameBuffer();
 
-		//cameraPos = vec3(3, 3, 2);
-		//cameraTarget = vec3(0, 0, -1);
-		shaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);
-		shaderProgram.SetUniform3f("camera.target", cameraTarget[0], cameraTarget[1], cameraTarget[2]);
-		shaderProgram.SetUniform3f("camera.up", 0, 1, 0);
-		shaderProgram.SetUniform1f("camera.vfov", 90.0f);
-		shaderProgram.SetUniform1f("camera.aspect", float(SCR_WIDTH) / SCR_HEIGHT);
-		shaderProgram.SetUniform1f("camera.aperture", 0.2f);
-		shaderProgram.SetUniform1f("camera.focalDistance", 3.0);
-
-		shaderProgram.SetUniform1i("world.objectCount", 4);
-		shaderProgram.SetUniform3f("world.objects[0].center", 0.0, 0.0, -1.0);
-		shaderProgram.SetUniform1f("world.objects[0].radius", 0.5);
-		shaderProgram.SetUniform1i("world.objects[0].materialType", MAT_LAMBERTIAN);
-		shaderProgram.SetUniform1i("world.objects[0].material", 0);
-		shaderProgram.SetUniform3f("world.objects[1].center", 1.0, 0.0, -1.0);
-		shaderProgram.SetUniform1f("world.objects[1].radius", 0.5);
-		shaderProgram.SetUniform1i("world.objects[1].materialType", MAT_METALLIC);
-		shaderProgram.SetUniform1i("world.objects[1].material", 0);
-		shaderProgram.SetUniform3f("world.objects[2].center", -1.0, 0.0, -1.0);
-		shaderProgram.SetUniform1f("world.objects[2].radius", 0.5);
-		shaderProgram.SetUniform1i("world.objects[2].materialType", MAT_DIELECTRIC);
-		shaderProgram.SetUniform1i("world.objects[2].material", 0);
-		shaderProgram.SetUniform3f("world.objects[3].center", 0.0, -100.5, -1.0);
-		shaderProgram.SetUniform1f("world.objects[3].radius", 100.0);
-		shaderProgram.SetUniform1i("world.objects[3].materialType", MAT_LAMBERTIAN);
-		shaderProgram.SetUniform1i("world.objects[3].material", 1);
-
-		shaderProgram.SetUniform3f("lambertMaterials[0].albedo", 0.1, 0.2, 0.5);
-		shaderProgram.SetUniform3f("lambertMaterials[1].albedo", 0.8, 0.8, 0.0);
-		shaderProgram.SetUniform3f("lambertMaterials[2].albedo", 0.0, 1.0, 0.0);
-		shaderProgram.SetUniform3f("lambertMaterials[3].albedo", 0.0, 0.0, 1.0);
-
-		shaderProgram.SetUniform3f("metallicMaterials[0].albedo", 0.8, 0.6, 0.0);
-		shaderProgram.SetUniform1f("metallicMaterials[0].roughness", 0.0);
-		shaderProgram.SetUniform3f("metallicMaterials[1].albedo", 0.8, 0.6, 0.0);
-		shaderProgram.SetUniform1f("metallicMaterials[1].roughness", 0.0);
-		shaderProgram.SetUniform3f("metallicMaterials[2].albedo", 0.0, 0.0, 1.0);
-		shaderProgram.SetUniform1f("metallicMaterials[2].roughness", 0.0);
-		shaderProgram.SetUniform3f("metallicMaterials[3].albedo", 0.0, 0.0, 1.0);
-		shaderProgram.SetUniform1f("metallicMaterials[3].roughness", 0.0);
-
-		shaderProgram.SetUniform3f("dielectricMaterials[0].albedo", 1.0, 1.0, 1.0);
-		shaderProgram.SetUniform1f("dielectricMaterials[0].roughness", 0.0);
-		shaderProgram.SetUniform1f("dielectricMaterials[0].ior", 1.5);
-		shaderProgram.SetUniform3f("dielectricMaterials[1].albedo", 1.0, 1.0, 1.0);
-		shaderProgram.SetUniform1f("dielectricMaterials[1].roughness", 0.0);
-		shaderProgram.SetUniform1f("dielectricMaterials[1].ior", 1.5);
-		shaderProgram.SetUniform3f("dielectricMaterials[2].albedo", 1.0, 1.0, 1.0);
-		shaderProgram.SetUniform1f("dielectricMaterials[2].roughness", 0.0);
-		shaderProgram.SetUniform1f("dielectricMaterials[2].ior", 1.5);
-		shaderProgram.SetUniform3f("dielectricMaterials[3].albedo", 1.0, 1.0, 1.0);
-		shaderProgram.SetUniform1f("dielectricMaterials[3].roughness", 0.0);
-		shaderProgram.SetUniform1f("dielectricMaterials[3].ior", 1.5);
-
-		vertexArrayObject.Bind();
-
-		
 		envMap.Bind(0);
 
+		pathTraceShaderProgram.Bind();
+		pathTraceShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		pathTraceShaderProgram.SetUniform1i("envMap", 0);
+		pathTraceShaderProgram.SetUniform1i("sampleCount", sampleCount);
+
+		pathTraceShaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);
+		pathTraceShaderProgram.SetUniform3f("camera.target", cameraTarget[0], cameraTarget[1], cameraTarget[2]);
+		pathTraceShaderProgram.SetUniform3f("camera.up", 0, 1, 0);
+		pathTraceShaderProgram.SetUniform1f("camera.vfov", 90.0f);
+		pathTraceShaderProgram.SetUniform1f("camera.aspect", float(SCR_WIDTH) / SCR_HEIGHT);
+		pathTraceShaderProgram.SetUniform1f("camera.aperture", 0.2f);
+		pathTraceShaderProgram.SetUniform1f("camera.focalDistance", 3.0);
+
+		pathTraceShaderProgram.SetUniform1i("world.objectCount", 4);
+		pathTraceShaderProgram.SetUniform3f("world.objects[0].center", 0.0, 0.0, -1.0);
+		pathTraceShaderProgram.SetUniform1f("world.objects[0].radius", 0.5);
+		pathTraceShaderProgram.SetUniform1i("world.objects[0].materialType", MAT_LAMBERTIAN);
+		pathTraceShaderProgram.SetUniform1i("world.objects[0].material", 0);
+		pathTraceShaderProgram.SetUniform3f("world.objects[1].center", 0.0, -100.5, -1.0);
+		pathTraceShaderProgram.SetUniform1f("world.objects[1].radius", 100.0);
+		pathTraceShaderProgram.SetUniform1i("world.objects[1].materialType", MAT_LAMBERTIAN);
+		pathTraceShaderProgram.SetUniform1i("world.objects[1].material", 1);
+		pathTraceShaderProgram.SetUniform3f("world.objects[2].center", 1.0, 0.0, -1.0);
+		pathTraceShaderProgram.SetUniform1f("world.objects[2].radius", 0.5);
+		pathTraceShaderProgram.SetUniform1i("world.objects[2].materialType", MAT_METALLIC);
+		pathTraceShaderProgram.SetUniform1i("world.objects[2].material", 0);
+		pathTraceShaderProgram.SetUniform3f("world.objects[3].center", -1.0, 0.0, -1.0);
+		pathTraceShaderProgram.SetUniform1f("world.objects[3].radius", 0.5);
+		pathTraceShaderProgram.SetUniform1i("world.objects[3].materialType", MAT_DIELECTRIC);
+		pathTraceShaderProgram.SetUniform1i("world.objects[3].material", 0);
+
+		pathTraceShaderProgram.SetUniform3f("lambertMaterials[0].albedo", 0.1, 0.2, 0.5);
+		pathTraceShaderProgram.SetUniform3f("lambertMaterials[1].albedo", 0.8, 0.8, 0.0);
+		pathTraceShaderProgram.SetUniform3f("lambertMaterials[2].albedo", 0.0, 1.0, 0.0);
+		pathTraceShaderProgram.SetUniform3f("lambertMaterials[3].albedo", 0.0, 0.0, 1.0);
+
+		pathTraceShaderProgram.SetUniform3f("metallicMaterials[0].albedo", 0.8, 0.6, 0.2);
+		pathTraceShaderProgram.SetUniform1f("metallicMaterials[0].roughness", 0.0);
+		pathTraceShaderProgram.SetUniform3f("metallicMaterials[1].albedo", 0.8, 0.6, 0.0);
+		pathTraceShaderProgram.SetUniform1f("metallicMaterials[1].roughness", 0.0);
+		pathTraceShaderProgram.SetUniform3f("metallicMaterials[2].albedo", 0.0, 0.0, 1.0);
+		pathTraceShaderProgram.SetUniform1f("metallicMaterials[2].roughness", 0.0);
+		pathTraceShaderProgram.SetUniform3f("metallicMaterials[3].albedo", 0.0, 0.0, 1.0);
+		pathTraceShaderProgram.SetUniform1f("metallicMaterials[3].roughness", 0.0);
+
+		pathTraceShaderProgram.SetUniform3f("dielectricMaterials[0].albedo", 1.0, 1.0, 1.0);
+		pathTraceShaderProgram.SetUniform1f("dielectricMaterials[0].roughness", 0.0);
+		pathTraceShaderProgram.SetUniform1f("dielectricMaterials[0].ior", 1.5);
+		pathTraceShaderProgram.SetUniform3f("dielectricMaterials[1].albedo", 1.0, 1.0, 1.0);
+		pathTraceShaderProgram.SetUniform1f("dielectricMaterials[1].roughness", 0.0);
+		pathTraceShaderProgram.SetUniform1f("dielectricMaterials[1].ior", 1.5);
+		pathTraceShaderProgram.SetUniform3f("dielectricMaterials[2].albedo", 1.0, 1.0, 1.0);
+		pathTraceShaderProgram.SetUniform1f("dielectricMaterials[2].roughness", 0.0);
+		pathTraceShaderProgram.SetUniform1f("dielectricMaterials[2].ior", 1.5);
+		pathTraceShaderProgram.SetUniform3f("dielectricMaterials[3].albedo", 1.0, 1.0, 1.0);
+		pathTraceShaderProgram.SetUniform1f("dielectricMaterials[3].roughness", 0.0);
+		pathTraceShaderProgram.SetUniform1f("dielectricMaterials[3].ior", 1.5);
+
+		vertexArrayObject.Bind();
+		vertexArrayObject.Draw(GL_TRIANGLES, 6);
+
+		//////////////////////////////////////////////////////
+		frameBufferTexture.UnBindFrameBuffer();
+
+		frameBufferTexture.Bind(0);
+		proprocessingShaderProgram.Bind();
+		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
+
+		vertexArrayObject.Bind();
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
 		return true;
@@ -167,19 +196,23 @@ public:
 
 	void OnDestroy() override
 	{
-		
-
 		envMap.Destroy();
+		pathTraceShaderProgram.Destroy();
 
-		shaderProgram.Destroy();
-
+		frameBufferTexture.Destroy();
+		proprocessingShaderProgram.Destroy();
 		vertexArrayObject.Destroy();
 	}
 private:
-	ShaderProgram shaderProgram;
-	
+	FrameBufferTexture2D frameBufferTexture;
+
 	TextureCube envMap;
+	ShaderProgram pathTraceShaderProgram;
+
+	ShaderProgram proprocessingShaderProgram;
 	VertexArrayObject vertexArrayObject;
+
+	int sampleCount;
 
 	vec3 cameraPos;
 	vec3 cameraTarget;
@@ -188,14 +221,14 @@ private:
 
 int main()
 {
-	Chapter10 chapter10;
+	Chapter10 chapter;
 
-	if (!chapter10.Create(SCR_WIDTH, SCR_HEIGHT))
+	if (!chapter.Create(SCR_WIDTH, SCR_HEIGHT))
 		return -1;
 
-	chapter10.Start();
+	chapter.Start();
 
-	chapter10.Destroy();
+	chapter.Destroy();
 
 	return 0;
 }

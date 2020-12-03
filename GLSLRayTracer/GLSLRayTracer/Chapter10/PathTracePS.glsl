@@ -4,7 +4,8 @@
 in vec2 screenCoord;
 
 uniform vec2 screenSize;
-uniform sampler2D randomMap;
+uniform int sampleCount;
+
 uniform samplerCube envMap;
 
 out vec4 FragColor;
@@ -563,7 +564,7 @@ void main()
 	seed(screenCoord);
 
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = 100;
+	int ns = sampleCount;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
@@ -571,7 +572,7 @@ void main()
 	}
 	col /= ns;
 
-	//FragColor.xyz = GammaCorrection(col);
-	FragColor.xyz = col;
+	FragColor.xyz = GammaCorrection(col);
+	//FragColor.xyz = col;
 	FragColor.w = 1.0;
 }
