@@ -74,6 +74,7 @@ public:
 		pathTraceShaderProgram.Bind();
 		pathTraceShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		pathTraceShaderProgram.SetUniform1i("envMap", 0);
+		pathTraceShaderProgram.SetUniform1f("envMapIntensity", 1.0);
 
 		pathTraceShaderProgram.SetUniform3f("camera.lower_left_corner", -2.0, -1.0, -1.0);
 		pathTraceShaderProgram.SetUniform3f("camera.horizontal", 4.0, 0.0, 0.0);

@@ -74,6 +74,9 @@ public:
 		roughness = 0.0001f;
 		metallic = 1.0f;
 		anisotropic = 0.0f;
+
+		envMapIntensity = 1.0f;
+		A = 1.0f;
 		return true;
 	}
 
@@ -118,6 +121,23 @@ public:
 				sampleCount = 1;
 
 			printf("%d\n", sampleCount);
+		}
+
+		if (IsKeyPressed('I'))
+		{
+			envMapIntensity += 0.1f;
+			if (envMapIntensity > 10.0)
+				envMapIntensity = 0.1f;
+
+			printf("%f\n", envMapIntensity);
+		}	
+		if (IsKeyPressed('K'))
+		{
+			A += 0.1f;
+			if (A > 10.0)
+				A = 0.1f;
+
+			printf("%f\n", A);
 		}
 
 
@@ -189,6 +209,7 @@ public:
 		pathTraceShaderProgram.Bind();
 		pathTraceShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		pathTraceShaderProgram.SetUniform1i("envMap", 0);
+		pathTraceShaderProgram.SetUniform1f("envMapIntensity", envMapIntensity);
 		pathTraceShaderProgram.SetUniform1i("sampleCount", sampleCount);
 
 		pathTraceShaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);
@@ -253,6 +274,7 @@ public:
 		frameBufferTexture.Bind(0);
 		proprocessingShaderProgram.Bind();
 		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
+		proprocessingShaderProgram.SetUniform1f("A", A);
 
 		vertexArrayObject.Bind();
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
@@ -287,6 +309,9 @@ private:
 	float roughness;
 	float metallic;
 	float anisotropic;
+
+	float envMapIntensity;
+	float A;
 };
 
 int main()

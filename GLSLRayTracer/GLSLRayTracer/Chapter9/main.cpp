@@ -123,6 +123,7 @@ public:
 		pathTraceShaderProgram.Bind();
 		pathTraceShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		pathTraceShaderProgram.SetUniform1i("envMap", 0);
+		pathTraceShaderProgram.SetUniform1f("envMapIntensity", 1.0);
 		pathTraceShaderProgram.SetUniform1i("sampleCount", sampleCount);
 
 		pathTraceShaderProgram.SetUniform3f("camera.origin", cameraPos[0], cameraPos[1], cameraPos[2]);

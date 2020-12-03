@@ -7,7 +7,7 @@ uniform vec2 screenSize;
 uniform int sampleCount;
 
 uniform samplerCube envMap;
-
+uniform float envMapIntensity;
 out vec4 FragColor;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -692,7 +692,7 @@ vec3 GetEnvironmentColor(World world, Ray ray)
 	//return texture(envMap, vec3(phi, theta, 0.0)).xyz;
 
 	vec3 dir = normalize(ray.direction);
-	return texture(envMap, dir).xyz;
+	return texture(envMap, dir).xyz * envMapIntensity;
 }
 
 vec3 PathTrace(Ray ray, int depth)

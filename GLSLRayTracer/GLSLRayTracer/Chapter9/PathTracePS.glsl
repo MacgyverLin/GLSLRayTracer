@@ -499,7 +499,7 @@ vec3 GetEnvironmentColor(World world, Ray ray)
 	//return texture(envMap, vec3(phi, theta, 0.0)).xyz;
 
 	vec3 dir = normalize(ray.direction);
-	return texture(envMap, dir).xyz;
+	return texture(envMap, dir).xyz * envMapIntensity;
 }
 
 /*

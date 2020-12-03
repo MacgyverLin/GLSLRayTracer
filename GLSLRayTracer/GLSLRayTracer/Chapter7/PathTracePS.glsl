@@ -500,7 +500,7 @@ vec3 GetEnvironmentColor(World world, Ray ray)
 	vec3 dir = normalize(ray.direction);
 	float theta = acos(dir.y) / PI;
 	float phi = (atan(dir.z, dir.x) + (PI / 2.0)) / PI;
-	return texture(envMap, vec2(phi, theta)).xyz;
+	return texture(envMap, dir).xyz * envMapIntensity;
 }
 
 /*
