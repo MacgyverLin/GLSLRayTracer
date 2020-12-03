@@ -7,6 +7,8 @@ uniform vec2 screenSize;
 
 uniform int sampleCount;
 
+uniform float envMapIntensity;
+
 uniform samplerCube envMap;
 
 out vec4 FragColor;
@@ -568,7 +570,7 @@ void main()
 	}
 	col /= ns;
 
-	//FragColor.xyz = GammaCorrection(col);
-	FragColor.xyz = col;
+	FragColor.xyz = GammaCorrection(col);
+	////FragColor.xyz = col;
 	FragColor.w = 1.0;
 }

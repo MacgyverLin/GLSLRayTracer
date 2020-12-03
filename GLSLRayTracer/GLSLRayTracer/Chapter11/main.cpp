@@ -69,7 +69,7 @@ public:
 			return false;
 		}
 
-		sampleCount = 30;
+		sampleCount = 10;
 
 		roughness = 0.0001f;
 		metallic = 1.0f;
@@ -122,7 +122,6 @@ public:
 
 			printf("%d\n", sampleCount);
 		}
-
 		if (IsKeyPressed('I'))
 		{
 			envMapIntensity += 0.1f;
@@ -273,6 +272,7 @@ public:
 
 		frameBufferTexture.Bind(0);
 		proprocessingShaderProgram.Bind();
+		proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
 		proprocessingShaderProgram.SetUniform1f("A", A);
 

@@ -38,7 +38,7 @@ public:
 			return false;
 		}
 
-		if (!envMap.Create("../assets/photo_studio_01_1k.hdr"))
+		if (!envMap.Create("../assets/env1.png"))
 		{
 			return false;
 		}
@@ -58,7 +58,7 @@ public:
 			return false;
 		}
 
-		sampleCount = 30;
+		sampleCount = 10;
 
 		return true;
 	}
@@ -67,12 +67,13 @@ public:
 	{
 		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-
 		if (IsKeyPressed(' '))
 		{
 			sampleCount++;
 			if (sampleCount > 1000)
-				sampleCount = 30;
+				sampleCount = 1;
+
+			printf("%d\n", sampleCount);
 		}
 
 		//////////////////////////////////////////////////////
@@ -105,6 +106,7 @@ public:
 
 		frameBufferTexture.Bind(0);
 		proprocessingShaderProgram.Bind();
+		proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
 
 		vertexArrayObject.Bind();

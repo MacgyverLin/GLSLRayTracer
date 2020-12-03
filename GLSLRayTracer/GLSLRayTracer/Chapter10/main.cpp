@@ -69,7 +69,7 @@ public:
 			return false;
 		}
 
-		sampleCount = 30;
+		sampleCount = 10;
 
 		return true;
 	}
@@ -107,7 +107,7 @@ public:
 		{
 			sampleCount++;
 			if (sampleCount > 1000)
-				sampleCount = 30;
+				sampleCount = 1;
 
 			printf("%d\n", sampleCount);
 		}
@@ -187,6 +187,7 @@ public:
 
 		frameBufferTexture.Bind(0);
 		proprocessingShaderProgram.Bind();
+		proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
 
 		vertexArrayObject.Bind();

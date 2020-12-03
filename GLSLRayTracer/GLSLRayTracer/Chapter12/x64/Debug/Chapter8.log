@@ -1,0 +1,35 @@
+﻿  main.cpp
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\FrameWork\FrameWork.h(134,16): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\FrameWork\FrameWork.h(135,16): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\FrameWork\FrameWork.h(136,14): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\FrameWork\FrameWork.h(137,14): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\FrameWork\Texture.h(294,52): warning C4806: '==': unsafe operation: no value of type 'bool' promoted to type 'int' can equal the given constant
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(25,1): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(99,11): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(100,11): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(101,11): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(108,1): warning C4305: 'argument': truncation from 'double' to 'const T'
+          with
+          [
+              T=float
+          ]
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(112,1): warning C4305: 'argument': truncation from 'double' to 'const T'
+          with
+          [
+              T=float
+          ]
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(116,1): warning C4305: 'argument': truncation from 'double' to 'const T'
+          with
+          [
+              T=float
+          ]
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(120,1): warning C4305: 'argument': truncation from 'double' to 'const T'
+          with
+          [
+              T=float
+          ]
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(197,1): warning C4305: 'argument': truncation from 'double' to 'float'
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(198,1): warning C4305: 'argument': truncation from 'double' to 'float'
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(202,1): warning C4305: 'argument': truncation from 'double' to 'float'
+G:\Play\GLSLRayTracer\GLSLRayTracer\GLSLRayTracer\Chapter8\main.cpp(204,1): warning C4305: 'argument': truncation from 'double' to 'float'
+  Chapter8.vcxproj -> G:\Play\GLSLRayTracer\GLSLRayTracer\x64\Debug\Chapter8.exe
