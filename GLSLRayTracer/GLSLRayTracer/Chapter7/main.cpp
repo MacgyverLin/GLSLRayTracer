@@ -14,7 +14,7 @@
 #define MAT_DIELECTRIC 2
 #define MAT_PBR 3
 
-//#define DISABLE_BLOOM
+#define DISABLE_BLOOM
 
 class Chapter7 : public FrameWork
 {
@@ -132,17 +132,21 @@ public:
 		}
 		
 		//////////////////////////////////////////////////////
+		static int frameCount = 1;
 		static int ping = 0;
 		int pong = 1 - ping;
 
 		//////////////////////////////////////////////////////
 		sceneTexture.BindFrameBuffer(); // no need again
-
+		
 		envMap.Bind(0);
+		pingpongBuffer[pong].Bind(1);
 
 		pathTraceShaderProgram.Bind();
+		pathTraceShaderProgram.SetUniform1i("frameCount", frameCount);  frameCount += 1;
 		pathTraceShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		pathTraceShaderProgram.SetUniform1i("envMap", 0);
+		pathTraceShaderProgram.SetUniform1i("lastResultMap", 1);
 		pathTraceShaderProgram.SetUniform1f("envMapIntensity", 1.0);
 		pathTraceShaderProgram.SetUniform1i("sampleCount", sampleCount);
 
@@ -200,6 +204,17 @@ public:
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
 		//////////////////////////////////////////////////////
+#ifdef DISABLE_BLOOM
+		pingpongBuffer[ping].BindFrameBuffer();
+		sceneTexture.Bind(0);
+
+		blitShader.Bind();
+		blitShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		blitShader.SetUniform1i("texture0", 0);
+		
+		vertexArrayObject.Bind();
+		vertexArrayObject.Draw(GL_TRIANGLES, 6);
+#else
 		thresholdShader.Bind();
 		thresholdShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		thresholdShader.SetUniform1i("texture0", 0);
@@ -210,8 +225,6 @@ public:
 		bloomShader.SetUniform1i("texture0", 0);
 		bloomShader.SetUniform1i("horizontal", 1);
 
-#ifdef DISABLE_BLOOM
-#else
 		for (int i = 0; i < bloom*2+1; i++)
 		{
 			ping = 1 - ping;

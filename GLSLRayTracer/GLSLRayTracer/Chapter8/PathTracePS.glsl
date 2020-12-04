@@ -3,13 +3,17 @@
 #define RAYCAST_MAX 100000.0
 in vec2 screenCoord;
 
+uniform int frameCount;
 uniform vec2 screenSize;
 
-uniform sampler2D envMap;
+uniform samplerCube envMap;
+uniform sampler2D lastResultMap;
 
-uniform int sampleCount;
+uniform float envMapIntensity;
 
 out vec4 FragColor;
+
+uniform int sampleCount;
 
 ///////////////////////////////////////////////////////////////////////////////
 uint rng_state;
@@ -30,9 +34,9 @@ uint rand_xorshift()
     return rng_state;
 }
 
-void seedcore3(vec2 screenCoord)
+void seedcore3(vec2 screenCoord, float frameCount)
 {
-	rng_state = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y);
+	rng_state = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y + frameCount);
 }
 
 float randcore3()
@@ -51,9 +55,9 @@ uint wang_hash(uint seed)
     return seed;
 }
 
-void seedcore4(vec2 screenCoord)
+void seedcore4(vec2 screenCoord, float frameCount)
 {
-	wang_seed = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y);
+	wang_seed = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y + frameCount);
 }
 
 float randcore4()
@@ -63,9 +67,10 @@ float randcore4()
 	return float(wang_seed) * (1.0 / 4294967296.0);
 }
 
-void seed(vec2 screenCoord)
+void seed(vec2 screenCoord, float frameCount)
 {
-	seedcore4(screenCoord);
+	seedcore4(screenCoord, frameCount);
+	seedcore4(screenCoord, frameCount * (2*randcore4()-1));
 }
 
 float rand()
@@ -224,7 +229,7 @@ Sphere SphereConstructor(vec3 center, float radius)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, inout HitRecord hitRecord)
+bool SphereHit(Sphere sphere, Ray ray, float t_min, float t_max, out HitRecord hitRecord)
 {
 	vec3 oc = ray.origin - sphere.center;
 	
@@ -493,12 +498,11 @@ vec3 GetEnvironmentColor(World world, Ray ray)
 	vec3 unit_direction = normalize(ray.direction);
 	float t = 0.5 * (unit_direction.y + 1.0);
 	return vec3(1.0, 1.0, 1.0) * (1.0 - t) + vec3(0.5, 0.7, 1.0) * t;
-	/*
+	
 	vec3 dir = normalize(ray.direction);
 	float theta = acos(dir.y) / PI;
 	float phi = (atan(dir.z, dir.x) + (PI / 2.0)) / PI;
 	return texture(envMap, dir).xyz * envMapIntensity;
-	*/
 }
 
 /*
@@ -522,22 +526,33 @@ vec3 PathTrace(Ray ray, int depth)
 	HitRecord hitRecord;
 
 	vec3 current_attenuation = vec3(1.0, 1.0, 1.0);
+	Ray current_ray = ray;
+	
 	while(depth>0)
 	{
 		depth--;
-		if(WorldHit(ray, 0.001, RAYCAST_MAX, hitRecord))
+		if(WorldHit(current_ray, 0.001, RAYCAST_MAX, hitRecord))
 		{
-			Ray scatterRay;
 			vec3 attenuation;
-			if(!MaterialScatter(ray, hitRecord, scatterRay, attenuation))
+			Ray scatter_ray;
+
+			//hitRecord.materialType = 0;
+			//hitRecord.material = 0;
+			if(!MaterialScatter(current_ray, hitRecord, scatter_ray, attenuation))
 				break;
 			
+			//if(!LambertianScatter(lambertMaterials[0], current_ray, hitRecord, scatter_ray, attenuation))
+				//break;
+			//attenuation = vec3(0.5);
+			//scatter_ray.origin = hitRecord.position;
+			//scatter_ray.direction = hitRecord.normal + random_in_unit_sphere();
+
 			current_attenuation *= attenuation;
-			ray = scatterRay;
+			current_ray = scatter_ray;
 		}
 		else
 		{
-			return current_attenuation * GetEnvironmentColor(world, ray);
+			return current_attenuation * GetEnvironmentColor(world, current_ray);
 		}
 	}
 
@@ -546,10 +561,10 @@ vec3 PathTrace(Ray ray, int depth)
 
 void main()
 {
-	seed(screenCoord);
+	seed(screenCoord, float(frameCount));
 
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = sampleCount;
+	int ns = 1;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
@@ -557,6 +572,9 @@ void main()
 	}
 	col /= ns;
 
-	FragColor.xyz = col;
+	vec4 lastResult = texture(lastResultMap, screenCoord);
+
+	FragColor.xyz = lastResult.xyz + ((col - lastResult.xyz) / 100);
+	//FragColor.xyz = col;
 	FragColor.w = 1.0;
 }

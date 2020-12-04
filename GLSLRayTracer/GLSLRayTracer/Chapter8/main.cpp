@@ -14,6 +14,8 @@
 #define MAT_DIELECTRIC 2
 #define MAT_PBR 3
 
+#define DISABLE_BLOOM
+
 class Chapter8 : public FrameWork
 {
 public:
@@ -27,10 +29,6 @@ public:
 
 	virtual bool OnCreate() override
 	{
-		cameraPos = vec3(0.0f, 0.0f, 0.0f);
-		cameraTarget = vec3(0.0f, 0.0f, -1.0f);
-		cameraUp = vec3(0.0f, 1.0f, 0.0f);
-
 		float vertices[] = {
 			 1.0f,  1.0f, 0.0f,  // top right
 			 1.0f, -1.0f, 0.0f,  // bottom right
@@ -47,6 +45,31 @@ public:
 			return false;
 		}
 
+		if (!sceneTexture.Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
+		{
+			return false;
+		}
+		sceneTexture.SetWarpS(GL_CLAMP);
+		sceneTexture.SetWarpR(GL_CLAMP);
+		sceneTexture.SetWarpT(GL_CLAMP);
+
+		for (int i = 0; i < 2; i++)
+		{
+			if (!pingpongBuffer[i].Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
+			{
+				return false;
+			}
+
+			pingpongBuffer[i].SetWarpS(GL_CLAMP);
+			pingpongBuffer[i].SetWarpR(GL_CLAMP);
+			pingpongBuffer[i].SetWarpT(GL_CLAMP);
+		}
+
+		if (!blitShader.Create("BlitVS.glsl", "BlitPS.glsl"))
+		{
+			return false;
+		}
+
 		if (!envMap.Create("../assets/env1.png"))
 		{
 			return false;
@@ -57,23 +80,61 @@ public:
 			return false;
 		}
 
-		if (!frameBufferTexture.Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
+
+		if (!thresholdShader.Create("ThresholdVS.glsl", "ThresholdPS.glsl"))
 		{
 			return false;
 		}
 
-		if (!proprocessingShaderProgram.Create("BlitVS.glsl", "BlitPS.glsl"))
+		if (!bloomShader.Create("BloomVS.glsl", "BloomPS.glsl"))
 		{
 			return false;
 		}
 
-		sampleCount = 10;
+		if (!finalShader.Create("FinalVS.glsl", "FinalPS.glsl"))
+		{
+			return false;
+		}
 
 		return true;
 	}
 
 	virtual bool OnUpdate() override
 	{
+		static int sampleCount = 10;
+		if (IsKeyPressed(' '))
+		{
+			sampleCount++;
+			if (sampleCount > 1000)
+				sampleCount = 10;
+
+			printf("%d\n", sampleCount);
+		}
+
+		static int bloom = 40;
+		if (IsKeyPressed('B'))
+		{
+			bloom++;
+			if (bloom > 100)
+				bloom = 1;
+
+			printf("%d\n", bloom);
+		}
+
+		static float threshold = 0.79;
+		if (IsKeyPressed('T'))
+		{
+			threshold += 0.001;
+			if (threshold > 1.0)
+				threshold = 0.0;
+
+			printf("%f\n", threshold);
+		}
+
+
+		static vec3 cameraPos;
+		static vec3 cameraTarget;
+		static vec3 cameraUp;
 		float theta;
 		float phi;
 		GetTheta(theta, phi);
@@ -102,72 +163,22 @@ public:
 			cameraPos -= (cameraTarget - cameraPos).Cross(vec3(0, 1, 0)) * 0.016;
 		}
 
-		static int dir = 1;
-		if (IsKeyPressed(' '))
-		{
-			sampleCount += dir;
-			if (sampleCount > 100)
-			{
-				sampleCount = 100;
-				dir = -1;
-			}
-			if (sampleCount < 0)
-			{
-				sampleCount = 0;
-				dir = +1;
-			}
-
-			printf("%d\n", sampleCount);
-		}
-
-		static int blur = 5;
-		static int blurdir = 1;
-		if (IsKeyPressed('B'))
-		{
-			blur += blurdir;
-			if (blur > 300)
-			{
-				blur = 300;
-				blurdir = -1;
-			}
-			if (blur < 0)
-			{
-				blur = 0;
-				blurdir = +1;
-			}
-
-			printf("%d\n", blur);
-		}
-
-		static float threshold = 0.95;
-		static float thresholddir = 1;
-		if (IsKeyPressed('T'))
-		{
-			threshold += thresholddir * 0.01;
-			if (threshold > 1)
-			{
-				threshold = 1;
-				thresholddir = -1;
-			}
-			if (threshold < 0)
-			{
-				threshold = 0;
-				thresholddir = 1;
-			}
-
-			printf("%f\n", threshold);
-		}
+		//////////////////////////////////////////////////////
+		static int frameCount = 1;
+		static int ping = 0;
+		int pong = 1 - ping;
 
 		//////////////////////////////////////////////////////
-		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		sceneTexture.BindFrameBuffer();
 
-		frameBufferTexture.BindFrameBuffer();
 		envMap.Bind(0);
+		pingpongBuffer[pong].Bind(1);
 
 		pathTraceShaderProgram.Bind();
+		pathTraceShaderProgram.SetUniform1i("frameCount", frameCount);  frameCount += 1;
 		pathTraceShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
 		pathTraceShaderProgram.SetUniform1i("envMap", 0);
+		pathTraceShaderProgram.SetUniform1i("lastResultMap", 1);
 		pathTraceShaderProgram.SetUniform1f("envMapIntensity", 1.0);
 		pathTraceShaderProgram.SetUniform1i("sampleCount", sampleCount);
 
@@ -226,43 +237,110 @@ public:
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
 		//////////////////////////////////////////////////////
-		// draw to frame buffer
-		frameBufferTexture.UnBindFrameBuffer();
-		frameBufferTexture.Bind(0);
-		proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
-		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
+#ifdef DISABLE_BLOOM
+		pingpongBuffer[ping].BindFrameBuffer();
+		sceneTexture.Bind(0);
+
+		blitShader.Bind();
+		blitShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		blitShader.SetUniform1i("texture0", 0);
+
 		vertexArrayObject.Bind();
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
+#else
+		thresholdShader.Bind();
+		thresholdShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		thresholdShader.SetUniform1i("texture0", 0);
+		thresholdShader.SetUniform1f("threshold", threshold);
+
+		bloomShader.Bind();
+		bloomShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		bloomShader.SetUniform1i("texture0", 0);
+		bloomShader.SetUniform1i("horizontal", 1);
+
+		for (int i = 0; i < bloom * 2 + 1; i++)
+		{
+			ping = 1 - ping;
+			pong = 1 - ping;
+
+			pingpongBuffer[ping].BindFrameBuffer(); // draw to screen
+
+			if (i == 0)
+			{
+				sceneTexture.Bind(0);
+
+				thresholdShader.Bind();
+			}
+			else
+			{
+				pingpongBuffer[pong].Bind(0);
+
+				bloomShader.Bind();
+				bloomShader.SetUniform1i("horizontal", i % 2);
+			}
+
+			vertexArrayObject.Bind();
+			vertexArrayObject.Draw(GL_TRIANGLES, 6);
+		}
+#endif
+
+		//////////////////////////////////////////////////////
+		pingpongBuffer[ping].UnBindFrameBuffer();
+		sceneTexture.Bind(0);
+		pingpongBuffer[ping].Bind(1);
+
+		finalShader.Bind();
+		finalShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		finalShader.SetUniform1i("texture0", 0);
+		finalShader.SetUniform1i("texture1", 1);
+#ifdef DISABLE_BLOOM
+		finalShader.SetUniform1f("bloomAmount", 0.0);
+#else
+		finalShader.SetUniform1f("bloomAmount", 0.8f);
+#endif
+
+		vertexArrayObject.Bind();
+		vertexArrayObject.Draw(GL_TRIANGLES, 6);
+
+		//////////////////////////////////////////////////////
+		ping = 1 - ping;
+		pong = 1 - ping;
 
 		return true;
 	}
 
 	void OnDestroy() override
 	{
-		frameBufferTexture.Destroy();
-
 		vertexArrayObject.Destroy();
+
+		sceneTexture.Destroy();
+		for (int i = 0; i < 2; i++)
+			pingpongBuffer[i].Destroy();
+
+		blitShader.Destroy();
 
 		envMap.Destroy();
 		pathTraceShaderProgram.Destroy();
 
-		proprocessingShaderProgram.Destroy();
+		thresholdShader.Destroy();
+		bloomShader.Destroy();
+		finalShader.Destroy();
 	}
 private:
-	FrameBufferTexture2D frameBufferTexture;
-
 	VertexArrayObject vertexArrayObject;
+	FrameBufferTexture2D sceneTexture;
+
+	FrameBufferTexture2D pingpongBuffer[2];
+
+	ShaderProgram blitShader;
 
 	TextureCube envMap;
 	ShaderProgram pathTraceShaderProgram;
 
-	ShaderProgram proprocessingShaderProgram;
+	ShaderProgram thresholdShader;
+	ShaderProgram bloomShader;
 
-	int sampleCount;
-
-	vec3 cameraPos;
-	vec3 cameraTarget;
-	vec3 cameraUp;
+	ShaderProgram finalShader;
 };
 
 int main()

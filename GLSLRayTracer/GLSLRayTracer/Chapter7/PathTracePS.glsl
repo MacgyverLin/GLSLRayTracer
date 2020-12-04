@@ -3,9 +3,11 @@
 #define RAYCAST_MAX 100000.0
 in vec2 screenCoord;
 
+uniform int frameCount;
 uniform vec2 screenSize;
 
 uniform samplerCube envMap;
+uniform sampler2D lastResultMap;
 
 uniform float envMapIntensity;
 
@@ -32,9 +34,9 @@ uint rand_xorshift()
     return rng_state;
 }
 
-void seedcore3(vec2 screenCoord)
+void seedcore3(vec2 screenCoord, float frameCount)
 {
-	rng_state = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y);
+	rng_state = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y + frameCount);
 }
 
 float randcore3()
@@ -53,9 +55,9 @@ uint wang_hash(uint seed)
     return seed;
 }
 
-void seedcore4(vec2 screenCoord)
+void seedcore4(vec2 screenCoord, float frameCount)
 {
-	wang_seed = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y);
+	wang_seed = uint(screenCoord.x * screenSize.x + screenCoord.y * screenSize.x * screenSize.y + frameCount);
 }
 
 float randcore4()
@@ -65,9 +67,10 @@ float randcore4()
 	return float(wang_seed) * (1.0 / 4294967296.0);
 }
 
-void seed(vec2 screenCoord)
+void seed(vec2 screenCoord, float frameCount)
 {
-	seedcore4(screenCoord);
+	seedcore4(screenCoord, frameCount);
+	seedcore4(screenCoord, frameCount * (2*randcore4()-1));
 }
 
 float rand()
@@ -561,10 +564,10 @@ vec3 PathTrace(Ray ray, int depth)
 
 void main()
 {
-	seed(screenCoord);
+	seed(screenCoord, float(frameCount));
 
 	vec3 col = vec3(0.0, 0.0, 0.0);
-	int ns = sampleCount;
+	int ns = 1;
 	for(int i=0; i<ns; i++)
 	{
 		Ray ray = CameraGetRay(camera, screenCoord + rand2() / screenSize);
@@ -572,5 +575,9 @@ void main()
 	}
 	col /= ns;
 
-	FragColor.xyz = col;	FragColor.w = 1.0;
+	vec4 lastResult = texture(lastResultMap, screenCoord);
+
+	FragColor.xyz = lastResult.xyz + ((col - lastResult.xyz) / frameCount);
+	//FragColor.xyz = col;
+	FragColor.w = 1.0;
 }
