@@ -14,6 +14,8 @@
 #define MAT_DIELECTRIC 2
 #define MAT_PBR 3
 
+//#define DISABLE_BLOOM
+
 class Chapter7 : public FrameWork
 {
 public:
@@ -38,7 +40,32 @@ public:
 			1, 2, 3    // second triangle
 		};
 
-		if (!frameBufferTexture.Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
+		if (!vertexArrayObject.Create(vertices, sizeof(vertices) / sizeof(vertices[0]), indices, sizeof(indices) / sizeof(indices[0])))
+		{
+			return false;
+		}
+
+		if (!sceneTexture.Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
+		{
+			return false;
+		}
+		sceneTexture.SetWarpS(GL_CLAMP);
+		sceneTexture.SetWarpR(GL_CLAMP);
+		sceneTexture.SetWarpT(GL_CLAMP);
+
+		for (int i = 0; i < 2; i++)
+		{
+			if (!pingpongBuffer[i].Create(SCR_WIDTH, SCR_HEIGHT, 4, true))
+			{
+				return false;
+			}
+
+			pingpongBuffer[i].SetWarpS(GL_CLAMP);
+			pingpongBuffer[i].SetWarpR(GL_CLAMP);
+			pingpongBuffer[i].SetWarpT(GL_CLAMP);
+		}
+
+		if (!blitShader.Create("BlitVS.glsl", "BlitPS.glsl"))
 		{
 			return false;
 		}
@@ -53,26 +80,28 @@ public:
 			return false;
 		}
 
-		if (!proprocessingShaderProgram.Create("BlitVS.glsl", "BlitPS.glsl"))
+
+		if (!thresholdShader.Create("ThresholdVS.glsl", "ThresholdPS.glsl"))
 		{
 			return false;
 		}
 
-		if (!vertexArrayObject.Create(vertices, sizeof(vertices) / sizeof(vertices[0]), indices, sizeof(indices) / sizeof(indices[0])))
+		if (!bloomShader.Create("BloomVS.glsl", "BloomPS.glsl"))
 		{
 			return false;
 		}
 
-		sampleCount = 10;
+		if (!finalShader.Create("FinalVS.glsl", "FinalPS.glsl"))
+		{
+			return false;
+		}
 
 		return true;
 	}
 
 	virtual bool OnUpdate() override
 	{
-		glClearColor(0.0f, 0.5f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
+		static int sampleCount = 10;
 		if (IsKeyPressed(' '))
 		{
 			sampleCount++;
@@ -82,8 +111,32 @@ public:
 			printf("%d\n", sampleCount);
 		}
 
+		static int bloom = 40;
+		if (IsKeyPressed('B'))
+		{
+			bloom++;
+			if (bloom > 100)
+				bloom = 1;
+
+			printf("%d\n", bloom);
+		}
+
+		static float threshold = 0.79;
+		if (IsKeyPressed('T'))
+		{
+			threshold += 0.001;
+			if (threshold > 1.0)
+				threshold = 0.0;
+
+			printf("%f\n", threshold);
+		}
+		
 		//////////////////////////////////////////////////////
-		frameBufferTexture.BindFrameBuffer();
+		static int ping = 0;
+		int pong = 1 - ping;
+
+		//////////////////////////////////////////////////////
+		sceneTexture.BindFrameBuffer(); // no need again
 
 		envMap.Bind(0);
 
@@ -147,38 +200,101 @@ public:
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
 
 		//////////////////////////////////////////////////////
-		frameBufferTexture.UnBindFrameBuffer();
+		thresholdShader.Bind();
+		thresholdShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		thresholdShader.SetUniform1i("texture0", 0);
+		thresholdShader.SetUniform1f("threshold", threshold);
 
-		frameBufferTexture.Bind(0);
-		proprocessingShaderProgram.Bind();
-		proprocessingShaderProgram.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
-		proprocessingShaderProgram.SetUniform1i("frameBufferTexture", 0);
+		bloomShader.Bind();
+		bloomShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		bloomShader.SetUniform1i("texture0", 0);
+		bloomShader.SetUniform1i("horizontal", 1);
+
+#ifdef DISABLE_BLOOM
+#else
+		for (int i = 0; i < bloom*2+1; i++)
+		{
+			ping = 1 - ping;
+			pong = 1 - ping;
+
+			pingpongBuffer[ping].BindFrameBuffer(); // draw to screen
+			
+			if (i == 0)
+			{
+				sceneTexture.Bind(0);
+
+				thresholdShader.Bind();
+			}
+			else
+			{
+				pingpongBuffer[pong].Bind(0);
+
+				bloomShader.Bind();
+				bloomShader.SetUniform1i("horizontal", i%2);
+			}
+
+			vertexArrayObject.Bind();
+			vertexArrayObject.Draw(GL_TRIANGLES, 6);
+		}
+#endif
+
+		//////////////////////////////////////////////////////
+		pingpongBuffer[ping].UnBindFrameBuffer();
+		sceneTexture.Bind(0);
+		pingpongBuffer[ping].Bind(1);
+		
+		finalShader.Bind();
+		finalShader.SetUniform2f("screenSize", SCR_WIDTH, SCR_HEIGHT);
+		finalShader.SetUniform1i("texture0", 0);
+		finalShader.SetUniform1i("texture1", 1);
+#ifdef DISABLE_BLOOM
+		finalShader.SetUniform1f("bloomAmount", 0.0);
+#else
+		finalShader.SetUniform1f("bloomAmount", 0.8f);
+#endif
 
 		vertexArrayObject.Bind();
 		vertexArrayObject.Draw(GL_TRIANGLES, 6);
+
+		//////////////////////////////////////////////////////
+		ping = 1 - ping;
+		pong = 1 - ping;
 
 		return true;
 	}
 
 	void OnDestroy() override
 	{
+		vertexArrayObject.Destroy();
+
+		sceneTexture.Destroy();
+		for(int i=0; i<2; i++)
+			pingpongBuffer[i].Destroy();
+
+		blitShader.Destroy();
+
 		envMap.Destroy();
 		pathTraceShaderProgram.Destroy();
 
-		frameBufferTexture.Destroy();
-		proprocessingShaderProgram.Destroy();
-		vertexArrayObject.Destroy();
+		thresholdShader.Destroy();
+		bloomShader.Destroy();
+		finalShader.Destroy();
 	}
 private:
-	FrameBufferTexture2D frameBufferTexture;
+	VertexArrayObject vertexArrayObject;
+	FrameBufferTexture2D sceneTexture;
+
+	FrameBufferTexture2D pingpongBuffer[2];
+
+	ShaderProgram blitShader;
 
 	TextureCube envMap;
 	ShaderProgram pathTraceShaderProgram;
 
-	ShaderProgram proprocessingShaderProgram;
-	VertexArrayObject vertexArrayObject;
+	ShaderProgram thresholdShader;
+	ShaderProgram bloomShader;
 
-	int sampleCount;
+	ShaderProgram finalShader;
 };
 
 int main()
