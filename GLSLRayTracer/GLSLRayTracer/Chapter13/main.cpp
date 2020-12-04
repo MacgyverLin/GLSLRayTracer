@@ -279,7 +279,7 @@ public:
 #define ALUMINIUM 0.91, 0.92, 0.92
 #define SILVER 0.96, 0.93, 0.88
 
-		pathTraceShaderProgram.SetUniform3f("pbrMaterials[0].albedo", SILVER);
+		pathTraceShaderProgram.SetUniform3f("pbrMaterials[0].albedo", WATER);
 		pathTraceShaderProgram.SetUniform1f("pbrMaterials[0].metallic", metallic);
 		pathTraceShaderProgram.SetUniform1f("pbrMaterials[0].roughness", roughness);
 
@@ -311,8 +311,6 @@ public:
 			proprocessingShaderProgram.SetUniform1i("useThreshold", i==0);
 			proprocessingShaderProgram.SetUniform1i("useBlend", false);
 			proprocessingShaderProgram.SetUniform1f("threshold", threshold);
-			
-			
 
 			vertexArrayObject.Bind();
 			vertexArrayObject.Draw(GL_TRIANGLES, 6);

@@ -722,16 +722,6 @@ vec3 PathTrace(Ray ray, int depth)
 	return vec3(0.0, 0.0, 0.0);
 }
 
-vec3 GammaCorrection(vec3 c)
-{
-	return pow(c, vec3(1 / 2.2));
-}
-
-vec3 InverseGammaCorrection(vec3 c)
-{
-	return pow(c, vec3(2.2));
-}
-
 void main()
 {
 	seed(screenCoord);
@@ -745,7 +735,6 @@ void main()
 	}
 	col /= ns;
 
-	////FragColor.xyz = col;
-	FragColor.xyz = GammaCorrection(col);
+	FragColor.xyz = col;
 	FragColor.w = 1.0;
 }

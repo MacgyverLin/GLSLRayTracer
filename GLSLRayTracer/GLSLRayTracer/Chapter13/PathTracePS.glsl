@@ -521,7 +521,7 @@ float SchlickGeometricShadowingFunction (float NdotL, float NdotV, float roughne
 	return (SmithL * SmithV); 
 }
 
-
+/*
 bool PBRScatter(in PBR pbr, in Ray incident, in HitRecord hitRecord, out Ray scattered, out vec3 attenuation)
 {
 	float roughness = pbr.roughness + 0.01;
@@ -555,28 +555,112 @@ bool PBRScatter(in PBR pbr, in Ray incident, in HitRecord hitRecord, out Ray sca
 	G = SchlickGeometricShadowingFunction(NdotL, NdotV, roughness);
 	
 	attenuation = (Kd * pbr.albedo / PI + Ks * F * D * G / (4 * NdotL * NdotV + 0.001)) * NdotL;
-	// attenuation = (Kd * pbr.albedo + Ks * F * G);
-	// attenuation = Kd * pbr.albedo;
-	// attenuation = vec3(G) / (4 * max(dot(-incident.direction, hitRecord.normal), 0.0) * max(dot(rayReflectedMicrofacet, hitRecord.normal), 0.0) + 0.001);
 	// attenuation = vec3(D);
+	attenuation = F;
+	// attenuation = vec3(G);
+	// attenuation = vec3(D) * vec3(G) * F;
+	//attenuation = pbr.albedo / PI + (F * D * G / (4 * NdotL * NdotV + 0.001)) * NdotL;
 
+	return true;
+}
+*/
+
+float F0 (float NdotL, float NdotV, float LdotH, float roughness)
+{
+    float FresnelLight = SchlickFresnel(NdotL); 
+
+    float FresnelView = SchlickFresnel(NdotV);
+
+    float FresnelDiffuse90 = 0.5 + 2.0 * LdotH * LdotH * roughness;
+
+	return mix(1, FresnelDiffuse90, FresnelLight) * mix(1, FresnelDiffuse90, FresnelView);
+}
+
+/*
+bool PBRScatter(in PBR pbr, in Ray incident, in HitRecord hitRecord, out Ray scattered, out vec3 attenuation)
+{
+	float roughness = pbr.roughness + 0.001;
+	vec3 Kd = vec3(1.0 - pbr.metallic);
+	vec3 Ks = vec3(pbr.metallic);
+
+	vec3 N = normalize(hitRecord.normal);
+	vec3 L = -normalize(incident.direction);
+	vec3 R = normalize(reflect(-L, N));
+	vec3 Vs = normalize(R + random_in_unit_sphere() * 0.50 * roughness);
+	vec3 Vd = normalize(N + random_in_unit_sphere() * 0.95 * roughness);
+	vec3 V = normalize(Ks * Vs + Kd * Vd);
+	vec3 H = normalize(V + L);
+	
+	float NdotL = max(0.0, dot(N, L));
+    float NdotH = max(0.0, dot(N, H));
+    float NdotV = max(0.0, dot(N, V));
+    float VdotH = max(0.0, dot(V, H));
+    float LdotH = max(0.0, dot(L, H)); 
+    float LdotV = max(0.0, dot(L, V)); 
+    float RdotV = max(0.0, dot(R, V));
+
+	scattered.origin = hitRecord.position;
+	scattered.direction = V;
+
+	// vec3 diffuse = pbr.albedo * (1.0 - pbr.metallic) * F0(NdotL, NdotV, LdotH, roughness);
+	vec3 diffuse = pbr.albedo / PI;
+
+	vec3 F0 = mix(vec3(0.04), pbr.albedo, pbr.metallic);
+	vec3 F  = SchlickFresnelFunction(F0, NdotV);
+
+	float D = GGXNormalDistribution(roughness, NdotH);
+	
+	float G = SchlickGeometricShadowingFunction(NdotL, NdotV, roughness);
+
+	vec3 specular = F * D * G / (4 * NdotL * NdotV + 0.001);
+
+	// attenuation = (diffuse + specular) * NdotL;
+	attenuation = (Kd * diffuse + Ks * specular) * NdotL;
+	// attenuation = F;
 	// attenuation = vec3(G);
 	// attenuation = vec3(D);
-	// attenuation = F;
 	// attenuation = vec3(D) * vec3(G) * F;
-	attenuation = pbr.albedo / PI + (F * D * G / (4 * NdotL * NdotV + 0.001)) * NdotL;
-	// attenuation = Kd * pbr.albedo;
+	// attenuation = pbr.albedo / PI + (F * D * G / (4 * NdotL * NdotV + 0.001)) * NdotL;
 
+	return true;
+}
+*/
 
-	 //float3 specularity = (SpecularDistribution * FresnelFunction * GeometricShadow) / (4 * ( NdotL * NdotV));
-     // float grazingTerm = saturate(roughness + pbr.metallic);
-	 // float3 unityIndirectSpecularity =  indirectSpecular * FresnelLerp(specColor, grazingTerm, NdotV) * max(0.15,_Metallic) * (1-roughness*roughness* roughness);
+bool PBRScatter(in PBR pbr, in Ray incident, in HitRecord hitRecord, out Ray scattered, out vec3 attenuation)
+{
+	float roughness = pbr.roughness + 0.001;
+	vec3 Kd = vec3(1.0 - pbr.metallic);
+	vec3 Ks = vec3(pbr.metallic);
 
-     //float3 lightingModel = ((diffuseColor) + specularity + (unityIndirectSpecularity *_UnityLightingContribution));
-     //lightingModel *= NdotL;
-     //float4 finalDiffuse = float4(lightingModel * attenColor,1);
-     //UNITY_APPLY_FOG(i.fogCoord, finalDiffuse);
-     //return finalDiffuse;
+	vec3 N = normalize(hitRecord.normal);
+	vec3 V = -normalize(incident.direction);
+	vec3 L = normalize(N + random_in_unit_sphere() * roughness);
+	vec3 R = normalize(reflect(-L, N));
+	vec3 H = normalize(V + L);
+	
+	float NdotL = max(0.0, dot(N, L));
+    float NdotH = max(0.0, dot(N, H));
+    float NdotV = max(0.0, dot(N, V));
+    float VdotH = max(0.0, dot(V, H));
+    float LdotH = max(0.0, dot(L, H)); 
+    float LdotV = max(0.0, dot(L, V)); 
+    float RdotV = max(0.0, dot(R, V));
+
+	scattered.origin = hitRecord.position;
+	scattered.direction = L;
+
+	vec3 diffuse = pbr.albedo / PI * NdotL;
+	
+	float g =  1.0 - roughness;
+	vec3 specular = vec3(1, 1, 1) * pow(NdotH, g);
+
+	attenuation = (diffuse + specular);
+	// attenuation = (Kd * diffuse + Ks * specular) * NdotL;
+	// attenuation = F;
+	// attenuation = vec3(G);
+	// attenuation = vec3(D);
+	// attenuation = vec3(D) * vec3(G) * F;
+	// attenuation = pbr.albedo / PI + (F * D * G / (4 * NdotL * NdotV + 0.001)) * NdotL;
 
 	return true;
 }

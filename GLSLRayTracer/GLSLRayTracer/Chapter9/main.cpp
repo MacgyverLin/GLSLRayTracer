@@ -69,7 +69,7 @@ public:
 			return false;
 		}
 
-		sampleCount = 10;
+		sampleCount = 1;
 
 		return true;
 	}
