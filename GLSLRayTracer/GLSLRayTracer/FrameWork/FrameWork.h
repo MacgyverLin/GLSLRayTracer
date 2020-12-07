@@ -133,6 +133,8 @@ private:
 
 		float deltaX = xpos - lastXPos;
 		float deltaY = ypos - lastYPos;
+
+		instance->moved = (fabs(deltaX) < 0.01f) && (fabs(deltaX) < 0.01f);
 		lastXPos = xpos;
 		lastYPos = ypos;
 		instance->theta += deltaX / instance->width * 180.0f * 2.0f;
@@ -148,6 +150,8 @@ private:
 			instance->phi = -70;
 		}
 	}
+protected:
+	bool moved;
 
 private:
 	GLFWwindow* window;
