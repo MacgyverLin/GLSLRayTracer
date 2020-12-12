@@ -1,12 +1,18 @@
 #ifndef _Vector4_h_
 #define _Vector4_h_
 
+#include "IMath.h"
+
 template<class T>
 class Vector4
 {
 public:
 	Vector4()
 	{
+		m[0] = 0;
+		m[1] = 0;
+		m[2] = 0;
+		m[3] = 0;
 	}
 
 	Vector4(T x_, T y_, T z_, T w_)

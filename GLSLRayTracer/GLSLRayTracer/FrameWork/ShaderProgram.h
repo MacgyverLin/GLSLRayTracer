@@ -79,13 +79,15 @@ public:
 		vertex = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertex, 1, &vShaderCode, NULL);
 		glCompileShader(vertex);
-		CheckCompileErrors(vertex, "VERTEX");
+		if (!CheckCompileErrors(vertex, "VERTEX"))
+			return false;
 
 		// fragment Shader
 		fragment = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragment, 1, &fShaderCode, NULL);
 		glCompileShader(fragment);
-		CheckCompileErrors(fragment, "FRAGMENT");
+		if (!CheckCompileErrors(fragment, "FRAGMENT"))
+			return false;
 
 		if (geometryPath)
 		{
@@ -93,7 +95,8 @@ public:
 			geometry = glCreateShader(GL_GEOMETRY_SHADER);
 			glShaderSource(geometry, 1, &gShaderCode, NULL);
 			glCompileShader(geometry);
-			CheckCompileErrors(geometry, "GEOMETRY");
+			if (!CheckCompileErrors(geometry, "GEOMETRY"))
+				return false;
 		}
 
 		// shader Program
@@ -106,7 +109,8 @@ public:
 		}
 
 		glLinkProgram(handle);
-		CheckCompileErrors(handle, "PROGRAM");
+		if (!CheckCompileErrors(handle, "PROGRAM"))
+			return false;
 		glDeleteShader(vertex);
 		glDeleteShader(fragment);
 		if(geometryPath)
@@ -233,7 +237,7 @@ public:
 		glUniformMatrix4fv(glGetUniformLocation(handle, name_), count_, true, v_);
 	}
 private:
-	void CheckCompileErrors(GLuint shader, std::string type)
+	bool CheckCompileErrors(GLuint shader, std::string type)
 	{
 		GLint success;
 		GLchar infoLog[1024];
@@ -244,6 +248,8 @@ private:
 			{
 				glGetShaderInfoLog(shader, 1024, NULL, infoLog);
 				std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+
+				return false;
 			}
 		}
 		else
@@ -253,8 +259,12 @@ private:
 			{
 				glGetProgramInfoLog(shader, 1024, NULL, infoLog);
 				std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+
+				return false;
 			}
 		}
+
+		return true;
 	}
 private:
 	unsigned int handle;

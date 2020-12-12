@@ -50,6 +50,11 @@ public:
 		glBindTexture(type, 0);
 	}
 
+	void Update(int xoffset, int yoffset, int width, int height, void* data)
+	{
+		glTexSubImage2D(GL_TEXTURE_2D, 0, xoffset, yoffset, width, height, format, pixelFormat, data);
+	}
+
 	void SetWarpS(unsigned int warpS_)
 	{
 		warpS = warpS_;
@@ -101,6 +106,13 @@ public:
 	}
 public:
 protected:
+	void SetFormat(unsigned int internalformat, unsigned int format, unsigned int type)
+	{
+		this->internalformat = internalformat;
+		this->format = format;
+		this->type = type;
+	}
+
 	void SetFormat(unsigned int nrComponents, bool isHDR)
 	{
 		if (nrComponents == 1)
@@ -108,11 +120,11 @@ protected:
 			format = GL_RED;
 			if (isHDR)
 			{
-				internalformat = GL_R16;
+				internalformat = GL_R32F;
 			}
 			else
 			{
-				internalformat = GL_R16F;
+				internalformat = GL_R16;
 			}
 		}
 		else if (nrComponents == 2)
@@ -120,11 +132,11 @@ protected:
 			format = GL_RG;
 			if (isHDR)
 			{
-				internalformat = GL_RG16;
+				internalformat = GL_RG32F;
 			}
 			else
 			{
-				internalformat = GL_RG16F;
+				internalformat = GL_RG16;
 			}
 		}
 		else if (nrComponents == 3)
@@ -182,6 +194,8 @@ class Texture2D : public Texture
 public:
 	Texture2D()
 		: Texture(GL_TEXTURE_2D)
+		, width(0)
+		, height(0)
 	{
 	}
 
@@ -190,29 +204,47 @@ public:
 		Destroy();
 	}
 
+	bool Create(unsigned int width, unsigned int height, unsigned int internalformat, unsigned int format, unsigned int type, void* data)
+	{
+		SetFormat(internalformat, format, type);
+
+		this->width = width;
+		this->width = height;
+		glGenTextures(1, &this->handle);
+		glBindTexture(GL_TEXTURE_2D, this->handle);
+		if(data)
+			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalformat, width, height, 0, (GLint)format, (GLint)pixelFormat, data);
+		else
+			glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalformat, width, height, 0, (GLint)format, (GLint)pixelFormat, nullptr);
+
+		return true;
+	}
+
 	bool Create(unsigned int width, unsigned int height, unsigned int nrComponents, bool isHDR, void* data)
 	{
 		SetFormat(nrComponents, isHDR);
 
-		glGenTextures(1, &handle);
-		glBindTexture(GL_TEXTURE_2D, handle);
+		this->width = width;
+		this->width = height;
+		glGenTextures(1, &this->handle);
+		glBindTexture(GL_TEXTURE_2D, this->handle);
 		glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalformat, width, height, 0, (GLint)format, (GLint)pixelFormat, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		return true;
 	}
 
-	bool Create(char const* path)
+	bool Create(const std::string& path)
 	{
-		bool isHDR = stbi_is_hdr(path);
+		bool isHDR = stbi_is_hdr(path.c_str());
 
 		int width, height, nrComponents;
 
 		void* data = nullptr;
 		if (isHDR)
-			data = stbi_loadf(path, &width, &height, &nrComponents, 0);
+			data = stbi_loadf(path.c_str(), &width, &height, &nrComponents, 0);
 		else
-			data = stbi_load(path, &width, &height, &nrComponents, 0);
+			data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0);
 
 		if (data)
 		{
@@ -240,6 +272,8 @@ protected:
 private:
 
 private:
+	unsigned int width;
+	unsigned int height;
 };
 
 class RandomTexture2D : public Texture2D
@@ -384,16 +418,16 @@ public:
 		return true;
 	}
 
-	bool Create(char const* path)
+	bool Create(const std::string& path)
 	{
-		bool isHDR = stbi_is_hdr(path);
+		bool isHDR = stbi_is_hdr(path.c_str());
 
 		int width, height, nrComponents;
 		void* data = nullptr;
 		if (isHDR)
-			data = stbi_loadf(path, &width, &height, &nrComponents, 0);
+			data = stbi_loadf(path.c_str(), &width, &height, &nrComponents, 0);
 		else
-			data = stbi_load(path, &width, &height, &nrComponents, 0);
+			data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0);
 
 		if (data)
 		{

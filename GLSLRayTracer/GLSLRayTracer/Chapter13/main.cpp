@@ -51,6 +51,8 @@ public:
 		{
 			return false;
 		}
+		envMap.SetMagFilter(GL_LINEAR);
+		envMap.SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
 		if (!pathTraceShaderProgram.Create("PathTraceVS.glsl", "PathTracePS.glsl"))
 		{

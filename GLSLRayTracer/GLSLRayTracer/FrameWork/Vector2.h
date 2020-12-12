@@ -1,12 +1,16 @@
 #ifndef _Vector2_h_
 #define _Vector2_h_
 
+#include "IMath.h"
+
 template<class T>
 class Vector2
 {
 public:
 	Vector2()
 	{
+		m[0] = 0;
+		m[1] = 0;
 	}
 
 	Vector2(T x_, T y_)
@@ -171,7 +175,7 @@ public:
 
 	float Dot(const Vector2& v) const
 	{
-		return m[0] * v.m[0] + m[1] * v.m[1] + m[2] * v.m[2];
+		return m[0] * v.m[0] + m[1] * v.m[1];
 	}
 
 	float SqrLength() const
